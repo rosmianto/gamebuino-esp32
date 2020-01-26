@@ -28,7 +28,6 @@ Authors:
 
 #include "utility/Buttons.h"
 #include "utility/Save.h"
-#include "utility/Bootloader.h"
 #include "utility/Gui.h"
 #include "utility/MetaMode.h"
 #include "utility/Collide.h"
@@ -101,7 +100,6 @@ public:
 	bool inited = false;
 	bool sdInited = false;
 private:
-	Adafruit_NeoPixel neoPixels = Adafruit_NeoPixel(8, NEOPIX_PIN, NEO_GRB + NEO_KHZ800);
 	uint8_t timePerFrame;
 	uint32_t nextFrameMillis;
 	void drawLogo(Graphics& g, int8_t x, int8_t y, uint8_t scale);
