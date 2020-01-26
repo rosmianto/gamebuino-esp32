@@ -9,7 +9,7 @@
 #endif
 
 #ifndef USE_SDFAT
-#define USE_SDFAT 1
+#define USE_SDFAT 0
 #endif
 
 #ifndef CUSTOM_TFT_FUNCTIONS
