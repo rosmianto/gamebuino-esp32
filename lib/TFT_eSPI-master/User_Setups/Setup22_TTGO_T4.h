@@ -13,7 +13,7 @@
 #define TFT_RST   5
 #define TFT_BL    4
 
-#define LOAD_GLCD
+// #define LOAD_GLCD
 // #define LOAD_FONT2
 // #define LOAD_FONT4
 // #define LOAD_FONT6
@@ -21,7 +21,7 @@
 // #define LOAD_FONT8
 // #define LOAD_GFXFF
 
-#define SMOOTH_FONT
+// #define SMOOTH_FONT
 
 //#define SPI_FREQUENCY  27000000
   #define SPI_FREQUENCY  40000000   // Maximum for ILI9341

@@ -33,8 +33,6 @@ extern SdFat SD;
 #endif
 
 #include "utility/Buttons.h"
-#include "utility/Sound.h"
-#include "utility/Save.h"
 #include "utility/Gui.h"
 #include "utility/MetaMode.h"
 #include "utility/Collide.h"
@@ -43,13 +41,9 @@ extern SdFat SD;
 #include "utility/Graphics.h"
 #include "utility/Image.h"
 #include "utility/Language.h"
+#include "utility/Save.h"
 
 namespace Gamebuino_Meta {
-#define TFT_CS		(30u)
-#define TFT_DC		(31u)
-#define SD_CS		(26u)
-#define NEOPIX_PIN	(38u)
-#define BAT_PIN		(A5)
 
 #define wrap(i, imax) ((imax+i)%(imax))
 
@@ -57,7 +51,6 @@ class Gamebuino {
 public:
 	Buttons buttons;
 	Image display = DISPLAY_CONSTRUCTOR;
-	Sound sound;
 	Display_ST7735 tft = Display_ST7735(TFT_CS, TFT_DC);
 	Image lights = Image(2, 4, ColorMode::rgb565);
 	Save save;

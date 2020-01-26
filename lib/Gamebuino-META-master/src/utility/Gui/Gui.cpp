@@ -216,7 +216,7 @@ void Gui::keyboard(const char* title, char* text, uint8_t length) {
 
 		keyboardDrawCursor(cursorX, cursorY);
 		if (cursorX != cursorXPrev || cursorY != cursorYPrev) {
-			gbptr->sound.playTick();
+			// gbptr->sound.playTick();
 		}
 		
 		// check for other button presses
@@ -232,19 +232,19 @@ void Gui::keyboard(const char* title, char* text, uint8_t length) {
 					switchLayout = true;
 				} else {
 					// we are done!
-					gbptr->sound.playOK();
+					// gbptr->sound.playOK();
 					break;
 				}
 			} else if (activeChar < length) {
 				text[activeChar++] = c;
 				text[activeChar] = '\0';
-				gbptr->sound.playOK();
+				// gbptr->sound.playOK();
 			}
 		}
 		if (backspace) {
 			if (activeChar > 0) {
 				text[--activeChar] = '\0';
-				gbptr->sound.playCancel();
+				// gbptr->sound.playCancel();
 			}
 		}
 		if (switchLayout) {
@@ -252,7 +252,7 @@ void Gui::keyboard(const char* title, char* text, uint8_t length) {
 				curLayout = 0;
 			}
 			keyboardDrawLayout(keyboardLayout[curLayout]);
-			gbptr->sound.playOK();
+			// gbptr->sound.playOK();
 		}
 		
 		// render drawing text
@@ -347,7 +347,7 @@ uint8_t Gui::menu(const char* title, const char** items, uint8_t length, uint8_t
 		gbptr->display.drawFastHLine(0, 7, gbptr->display.width());
 		
 		if (gbptr->buttons.released(BUTTON_A)) {
-			gbptr->sound.playOK();
+			// gbptr->sound.playOK();
 			break;
 		}
 		
@@ -363,7 +363,7 @@ uint8_t Gui::menu(const char* title, const char** items, uint8_t length, uint8_t
 					cameraY += 8;
 				}
 			}
-			gbptr->sound.playTick();
+			// gbptr->sound.playTick();
 		}
 		
 		if (gbptr->buttons.repeat(BUTTON_DOWN, 4)) {
@@ -375,7 +375,7 @@ uint8_t Gui::menu(const char* title, const char** items, uint8_t length, uint8_t
 				cursor = 0;
 				cameraY = 0;
 			}
-			gbptr->sound.playTick();
+			// gbptr->sound.playTick();
 		}
 	}
 	if (reInitAsIndexed) {
