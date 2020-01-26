@@ -26,11 +26,6 @@ Authors:
 #include "../../config/config.h"
 #include "../Display-ST7735.h"
 
-#if USE_SDFAT
-#include "../SdFat.h"
-extern SdFat SD;
-#endif
-
 #include <type_traits>
 
 

@@ -1,6 +1,8 @@
-#include <Gamebuino-ESP32.h>
+// #include <Gamebuino-ESP32.h>
+#include <Arduino.h>
+#include <Gamebuino-Meta.h>
 
-Gamebuino_ESP32 gb;
+// Gamebuino_ESP32 gb;
 
 void setup() {
     Serial.begin(115200);

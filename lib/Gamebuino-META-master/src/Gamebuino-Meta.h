@@ -24,48 +24,19 @@ Authors:
 #ifndef _GAMEBUINO_META_H_
 #define	_GAMEBUINO_META_H_
 
-#ifndef __SKETCH_NAME__
-#error "Please compile using the Gamebuino Meta board!"
-#endif
-
 #include "config/config.h"
 
-#if USE_SDFAT
-#include <SPI.h>
-#include "utility/SdFat.h"
-extern SdFat SD;
-#endif
-
 #include "utility/Buttons.h"
-#include "utility/Sound.h"
 #include "utility/Save.h"
 #include "utility/Bootloader.h"
 #include "utility/Gui.h"
 #include "utility/MetaMode.h"
 #include "utility/Collide.h"
 
-#include "utility/Adafruit_NeoPixel.h"
 #include "utility/Display-ST7735.h"
 #include "utility/Graphics.h"
 #include "utility/Image.h"
 #include "utility/Language.h"
-
-// make sure that sketches don't screw things up, the SAMD architecture has only one addressable space, thus making the PROGMEM concept unneded
-#ifndef F
-#define F(x) x
-#endif
-
-#ifndef PROGMEM
-#define PROGMEM  
-#endif
-
-#ifdef GAMEBUINO_COMPAT_MODE
-// we need the display definition from the compat lib....
-// we need to do it here as the arduino IDE doesn't add all include paths from the start
-// and thus Gamebuino_Compat::Display will not find Gamebuino_Meta::Image yet
-#include <utility/Display_Compat.h>
-#include <utility/Sound_Compat.h>
-#endif
 
 namespace Gamebuino_Meta {
 #define TFT_CS		(30u)
@@ -79,19 +50,12 @@ namespace Gamebuino_Meta {
 class Gamebuino {
 public:
 	Buttons buttons;
-#ifdef GAMEBUINO_COMPAT_MODE
-	Gamebuino_Compat::Display display;
-	Gamebuino_Compat::Sound sound;
-#else
 	Image display = DISPLAY_CONSTRUCTOR;
-	Sound sound;
-#endif
 	Display_ST7735 tft = Display_ST7735(TFT_CS, TFT_DC);
 	Image lights = Image(2, 4, ColorMode::rgb565);
 	Save save;
 	Save settings;
 	Language language;
-	Bootloader bootloader;
 	Gui gui;
 	MetaMode metaMode;
 	Collide collide;
