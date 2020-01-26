@@ -150,7 +150,7 @@ Gamebuino* gbptr = nullptr;
 
 void Gamebuino::begin() {
 	// first we disable the watchdog timer so that we tell the bootloader everything is fine!
-	WDT->CTRL.bit.ENABLE = 0;
+	// WDT->CTRL.bit.ENABLE = 0;
 	gbptr = this;
 	
 	// let's to some sanity checks which are done on compile-time
@@ -169,10 +169,6 @@ void Gamebuino::begin() {
 	//frameCount = 0;
 	frameEndFlag = true;
 	startMenuTimer = 255;
-
-	//neoPixels
-	neoPixels.begin();
-	neoPixels.clear();
 
 	//buttons
 	buttons.begin();
@@ -243,19 +239,16 @@ void Gamebuino::begin() {
 	// language
 	language.setCurrentLang((LangCode)settings.get(SETTING_LANGUAGE));
 	
-	// neoPixels
-	neoPixels.setBrightness(neoPixelsIntensities[settings.get(SETTING_NEOPIXELS_INTENSITY)]);
-	
 	Graphics_SD::setTft(&tft);
 	// only do titleScreen after a hard power on
-	if (PM->RCAUSE.bit.POR) {
-#if AUTOSHOW_STARTSCREEN
-		startScreen();
-#endif
-#if AUTOSHOW_TITLESCREEN
-		titleScreen();
-#endif
-	}
+// 	if (PM->RCAUSE.bit.POR) {
+// #if AUTOSHOW_STARTSCREEN
+// 		startScreen();
+// #endif
+// #if AUTOSHOW_TITLESCREEN
+// 		titleScreen();
+// #endif
+// 	}
 	pickRandomSeed();
 	display.clear();
 	
@@ -399,16 +392,11 @@ bool Gamebuino::update() {
 	for (uint8_t y = 0; y < px_height; y++) {
 		for (uint8_t x = 0; x < px_width; x++) {
 			RGB888 c = rgb565Torgb888(lights.getPixel(x, y));
-			// intensity is scaled directly via neoPixels.setBrightness
-			neoPixels.setPixelColor(px_map[y*px_width + x], c.r, c.g, c.b);
 		}
 	}
 	//show a red blinking pixel on recording screen
 	if (recording_screen) {
-		neoPixels.setPixelColor(px_map[0], (frameCount % 10) < 5 ? 0xFF : 0, 0, 0);
 	}
-	neoPixels.show();
-	neoPixels.clear();
 
 	frameDurationMicros = micros() - frameStartMicros;
 	Graphics_SD::update(); // update screen recordings
@@ -488,8 +476,6 @@ void Gamebuino::checkHomeMenu() {
 			bool isMute = sound.isMute();
 			sound.mute();
 			display.setFont(font3x5);
-			neoPixels.clear();
-			neoPixels.show();
 			display.stopRecording(true);
 			recording_screen = false;
 			//refresh screen to erase log messages
@@ -571,14 +557,6 @@ void Gamebuino::homeMenu(){
 	bool changed = true;
 	int frameCounter = 0;
 	
-	neoPixels.clear();
-	neoPixels.show();
-	// determine the neoPixel color index
-	uint8_t neoPixelsIntensity = 0;
-	for (;(neoPixelsIntensity < 5) && (neoPixels.getBrightness() > neoPixelsIntensities[neoPixelsIntensity]);neoPixelsIntensity++) {
-		// do nothing
-	}
-	
 	//static screen content
 	//draw icons first as it's where the user is focused
 	{ //local scope to free RAM used by the buffer
@@ -623,9 +601,6 @@ void Gamebuino::homeMenu(){
 		buttons.update();
 		frameCounter++;
 		
-		//clear noPixels
-		neoPixels.clear();
-		
 		if (buttons.released(Button::home) || buttons.released(Button::b) || buttons.released(Button::menu)) {
 			sound.stopEfxOnly();
 			HOME_MENU_RESTORE_STATE;
@@ -665,12 +640,7 @@ void Gamebuino::homeMenu(){
 				}
 				//update and save settings
 				if(changed == true){
-					neoPixels.setBrightness(neoPixelsIntensities[neoPixelsIntensity]);
 					settings.set(SETTING_NEOPIXELS_INTENSITY, neoPixelsIntensity);
-				}
-				//light up neopixels according to intensity
-				for(uint8_t i = 0; i < neoPixels.numPixels(); i++){
-					neoPixels.setPixelColor(i, 0xFF, 0xFF, 0xFF);
 				}
 				break;
 			////VOLUME
@@ -850,9 +820,6 @@ void Gamebuino::homeMenu(){
 			int volumeHeight = sound.getVolume() * 32 / 8;
 			tft.drawRect(currentItem*32 + 30 + xOffset, yOffset + (32 - volumeHeight), 2, volumeHeight);
 		}
-		
-		//updated neopixels
-		neoPixels.show();
 		
 		changed = false;
 	}

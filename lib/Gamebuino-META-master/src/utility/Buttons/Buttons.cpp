@@ -23,6 +23,10 @@ Authors:
 
 #include "Buttons.h"
 
+#define TTGO_LEFT    38
+#define TTGO_CENTER  37
+#define TTGO_RIGHT   39
+
 #if CUSTOM_BUTTON_FUNCTIONS
 extern "C" {
 void gamebuino_meta_buttons_init(void);
@@ -31,6 +35,22 @@ uint8_t gamebuino_meta_buttons_update(void);
 #else
 #include <SPI.h>
 #endif
+
+void gamebuino_meta_buttons_init(void) {
+	pinMode(TTGO_LEFT, INPUT);
+	pinMode(TTGO_CENTER, INPUT);
+	pinMode(TTGO_RIGHT, INPUT);
+}
+
+uint8_t gamebuino_meta_buttons_update(void) {
+	uint8_t state = 0;
+
+	state |= digitalRead(TTGO_LEFT)   << 1;
+	state |= digitalRead(TTGO_CENTER) << 7;
+	state |= digitalRead(TTGO_RIGHT)  << 2;
+
+	return state;
+}
 
 namespace Gamebuino_Meta {
 

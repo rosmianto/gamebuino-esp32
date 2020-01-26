@@ -25,7 +25,7 @@
 #endif
 
 #ifndef CUSTOM_BUTTON_FUNCTIONS
-#define CUSTOM_BUTTON_FUNCTIONS 0
+#define CUSTOM_BUTTON_FUNCTIONS 1
 #endif
 
 #ifndef USE_PRINTF
