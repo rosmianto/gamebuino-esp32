@@ -43,11 +43,11 @@ void Display_ST7735::init() {
 }
 
 void Display_ST7735::setAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
-
+	_tft.setAddrWindow(x0, y0, x1-x0, y1-y0);
 }
 
 void Display_ST7735::pushColor(uint16_t c) {
-
+	_tft.pushColor(c);
 }
 
 void Display_ST7735::_drawPixel(int16_t x, int16_t y) {
@@ -63,23 +63,71 @@ void Display_ST7735::drawFastHLine(int16_t x, int16_t y, int16_t w) {
 }
 
 void Display_ST7735::drawBufferedLine(int16_t x, int16_t y, uint16_t *buffer, uint16_t w, Image& img) {
-	
+	//create a local buffer line not to mess up the source
+	uint16_t bufferedLine[w];
+	for (uint16_t i = 0; i < w; i++) {
+		uint16_t color = buffer[i];
+		color = (color << 8) | (color >> 8); //change endianness
+		bufferedLine[i] = color;
+	}
+
+	setAddrWindow(x, y, x + w - 1, y + 1);
+	sendBuffer(bufferedLine, w);
 }
 
 void Display_ST7735::drawBuffer(int16_t x, int16_t y, uint16_t *buffer, uint16_t w, uint16_t h) {
-
+	setAddrWindow(x, y, x + w - 1, y + h - 1);
+	sendBuffer(buffer, w*h);
 }
 
 void Display_ST7735::sendBuffer(uint16_t *buffer, uint16_t n) {
-
+	_tft.pushColors(buffer, n);	
 }
 
 void Display_ST7735::drawImage(int16_t x, int16_t y, Image& img) {
-
+	img.nextFrame();
+	int16_t w = img._width;
+	int16_t h = img._height;
+	if (w == 0 || h == 0) {
+		return;
+	}
+	
+	Graphics::drawImage(x, y, img); //fallback to the usual
 }
 
 void Display_ST7735::drawImage(int16_t x, int16_t y, Image& img, int16_t w2, int16_t h2) {
-	
+	img.nextFrame();
+	//out of screen
+	if ((x > _width) || ((x + abs(w2)) < 0) || (y > _height) || ((y + abs(h2)) < 0) || (w2 == 0) || (h2 == 0)) return;
+
+	int16_t w = img._width;
+	int16_t h = img._height;
+	if (w == 0 || h == 0) {
+		return;
+	}
+
+	//no scaling
+	if ((w == w2) && (h == h2)) { 
+		drawImage(x, y, img);
+		return;
+	}
+
+	//x2 upscaling to full screen
+	if ((w2 == (w * 2)) && (h2 == (h * 2)) && (_width == w2) && (_height == h2)) {
+
+		//set the window to the whole screen
+		setAddrWindow(0, 0, _width - 1, _height - 1);
+		
+		if (img.colorMode == ColorMode::rgb565) {
+			_tft.pushColors(img._buffer, w*h);
+		}
+		if (img.colorMode == ColorMode::index) {
+			_tft.pushColors(img._buffer, w*h);
+		}
+	}
+
+	// fall back to most generic but slow resizing
+	Graphics::drawImage(x, y, img, w2, h2);
 }
 
 void Display_ST7735::fillRect(int16_t x, int16_t y, int16_t w, int16_t h) {

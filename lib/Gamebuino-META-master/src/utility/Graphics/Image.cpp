@@ -172,7 +172,12 @@ void Image::init(uint16_t w, uint16_t h, ColorMode col, uint16_t _frames, uint8_
 	frame_looping = fl;
 	frame_handler = new Frame_Handler_RAM(this);
 	frame_loopcounter = 0;
-	last_frame = (gbptr->frameCount & 0xFF) - 1;
+	if (gbptr != nullptr) {
+		last_frame = (gbptr->frameCount & 0xFF) - 1;
+	}
+	else {
+		
+	}
 	setFrame(0);
 }
 

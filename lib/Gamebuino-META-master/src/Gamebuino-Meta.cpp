@@ -229,14 +229,14 @@ void Gamebuino::begin() {
 	
 	Graphics_SD::setTft(&tft);
 	// only do titleScreen after a hard power on
-// 	if (PM->RCAUSE.bit.POR) {
-// #if AUTOSHOW_STARTSCREEN
-// 		startScreen();
-// #endif
-// #if AUTOSHOW_TITLESCREEN
-// 		titleScreen();
-// #endif
-// 	}
+	if (true) {
+#if AUTOSHOW_STARTSCREEN
+		startScreen();
+#endif
+#if AUTOSHOW_TITLESCREEN
+		titleScreen();
+#endif
+	}
 	pickRandomSeed();
 	display.clear();
 	
@@ -417,11 +417,8 @@ uint8_t Gamebuino::getCpuLoad(){
 	return(frameDurationMicros/(10*timePerFrame));
 }
 
-extern "C" char* sbrk(int incr);	
-uint16_t Gamebuino::getFreeRam() {	
-	// from https://github.com/mpflaga/Arduino-MemoryFree/blob/master/MemoryFree.cpp
-	char top;
-	return &top - reinterpret_cast<char*>(sbrk(0));
+uint16_t Gamebuino::getFreeRam() {
+	return ESP.getFreeHeap();
 }
 
 #define HOME_MENU_SAVE_STATE \
