@@ -620,29 +620,7 @@ void Gamebuino::homeMenu(){
 		
 		switch(currentItem){
 			//// NEOPIXELS
-			case 0:
-				if (buttons.repeat(Button::up, 4) && (neoPixelsIntensity < 4)){
-					neoPixelsIntensity ++;
-					changed = true;
-				}
-				if (buttons.repeat(Button::down, 4) && (neoPixelsIntensity > 0)){
-					neoPixelsIntensity--;
-					changed = true;
-				}
-				//toggle with "A"
-				if (buttons.released(Button::a)){
-					if(neoPixelsIntensity > 0){
-						neoPixelsIntensity = 0;
-					} else {
-						neoPixelsIntensity = 4;
-					}
-					changed = true;
-				}
-				//update and save settings
-				if(changed == true){
-					settings.set(SETTING_NEOPIXELS_INTENSITY, neoPixelsIntensity);
-				}
-				break;
+			case 0: break;
 			////VOLUME
 			case 1:
 				//toggle mute/unmute
@@ -807,13 +785,6 @@ void Gamebuino::homeMenu(){
 			}
 		}
 		
-		//draw light level
-		if ((currentItem == 0) && neoPixelsIntensity) {
-			tft.setColor(WHITE);
-			int lightHeight = neoPixelsIntensity * 32 / 4;
-			tft.drawRect(currentItem*32 + 30 + xOffset, yOffset + (32 - lightHeight), 2, lightHeight);
-		}
-		
 		//draw volume level
 		if ((currentItem == 1) && (sound.getVolume())) {
 			tft.setColor(WHITE);
@@ -829,7 +800,7 @@ void Gamebuino::changeGame(){
 	//clear the screen
 	tft.fill(Color::black);
 	//flash loader.bin
-	bootloader.loader();
+	// bootloader.loader();
 }
 
 void Gamebuino::getDefaultName(char* string){

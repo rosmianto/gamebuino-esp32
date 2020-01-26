@@ -29,7 +29,7 @@
 #endif
 
 #ifndef USE_PRINTF
-#define USE_PRINTF 1
+#define USE_PRINTF 0
 #endif
 
 #ifndef CUSTOM_MALLOC

@@ -1,32 +1,11 @@
-/***************************************************
-  This is a library for the Adafruit 1.8" SPI display.
-
-This library works with the Adafruit 1.8" TFT Breakout w/SD card
-  ----> http://www.adafruit.com/products/358
-The 1.8" TFT shield
-  ----> https://www.adafruit.com/product/802
-The 1.44" TFT breakout
-  ----> https://www.adafruit.com/product/2088
-as well as Adafruit raw 1.8" TFT display
-  ----> http://www.adafruit.com/products/618
-
-  Check out the links above for our tutorials and wiring diagrams
-  These displays use SPI to communicate, 4 or 5 pins are required to
-  interface (RST is optional)
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit and open-source hardware by purchasing
-  products from Adafruit!
-
-  Written by Limor Fried/Ladyada for Adafruit Industries.
-  MIT license, all text above must be included in any redistribution
- ****************************************************/
-
-#ifndef _GAMEBUINO_META_GRAPHICS_ST7735_H_
-#define _GAMEBUINO_META_GRAPHICS_ST7735_H_
+#pragma once
 
 #include "../../config/config.h"
 
 #include "../Image.h"
+
+#include <TFT_eSPI.h>
+#include <SPI.h>
 
 namespace Gamebuino_Meta {
 
@@ -124,9 +103,6 @@ public:
 	void drawBufferedLine(int16_t x, int16_t y, uint16_t *buffer, uint16_t w, Image& img);
 	void drawBuffer(int16_t x, int16_t y, uint16_t *buffer, uint16_t w, uint16_t h);
 	void sendBuffer(uint16_t *buffer, uint16_t n);
-	void dataMode();
-	void commandMode();
-	void idleMode();
 	void drawImage(int16_t x, int16_t y, Image& img);
 	void drawImage(int16_t x, int16_t y, Image& img, int16_t w2, int16_t h2);
 	void fillRect(int16_t x, int16_t y, int16_t w, int16_t h);
@@ -138,15 +114,7 @@ public:
 private:
 	Rotation rotation;
 
-	void spiwrite(uint8_t);
-	void writecommand(uint8_t c);
-	void writedata(uint8_t d);
-	void commandList(const uint8_t *addr);
-	void commonInit();
-
-	volatile uint32_t  *dataport, *clkport, *csport, *rsport;
-	uint32_t  datapinmask, clkpinmask, cspinmask, rspinmask;
-
+	TFT_eSPI _tft = TFT_eSPI();       // Invoke custom library
 };
 
 } // namespace Gamebuino_Meta
@@ -157,5 +125,3 @@ const Rotation ROTATION_LEFT = Rotation::left;
 const Rotation ROTATION_UP = Rotation::up;
 const Rotation ROTATION_RIGHT = Rotation::right;
 const Rotation ROTATION_DOWN = Rotation::down;
-
-#endif // _GAMEBUINO_META_GRAPHICS_ST7735_H_
