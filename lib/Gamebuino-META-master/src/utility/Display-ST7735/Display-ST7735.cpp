@@ -33,13 +33,15 @@ inline uint16_t swapcolor(uint16_t x) {
 
 // Constructor when using hardware SPI.	Faster, but must use SPI pins
 // specific to each board type (e.g. 11,13 for Uno, 51,52 for Mega, etc.)
-Display_ST7735::Display_ST7735(int8_t cs, int8_t rs)  : Graphics(ST7735_TFTWIDTH, ST7735_TFTHEIGHT_18) {
+// Display_ST7735::Display_ST7735(int8_t cs, int8_t rs)  : Graphics(ST7735_TFTHEIGHT_18, ST7735_TFTWIDTH) {
+Display_ST7735::Display_ST7735(int8_t cs, int8_t rs)  : Graphics(80*3, 64*3) {
 	// we use the pinmask vars as we don't need cs / rs after we have the pinmask
 }
 
 // Initialization for ST7735R screens (green or red tabs)
 void Display_ST7735::init() {
 	_tft.init();
+	_tft.fillScreen(0);
 }
 
 void Display_ST7735::setAddrWindow(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
@@ -51,7 +53,7 @@ void Display_ST7735::pushColor(uint16_t c) {
 }
 
 void Display_ST7735::_drawPixel(int16_t x, int16_t y) {
-	_tft.drawPixel(x,y,(uint32_t)color.c);
+	_tft.drawPixel(x,y,(uint16_t)color.c);
 }
 
 void Display_ST7735::drawFastVLine(int16_t x, int16_t y, int16_t h) {
@@ -81,7 +83,7 @@ void Display_ST7735::drawBuffer(int16_t x, int16_t y, uint16_t *buffer, uint16_t
 }
 
 void Display_ST7735::sendBuffer(uint16_t *buffer, uint16_t n) {
-	_tft.pushColors(buffer, n);	
+	_tft.pushColors(buffer, n, false);	
 }
 
 void Display_ST7735::drawImage(int16_t x, int16_t y, Image& img) {
@@ -96,6 +98,7 @@ void Display_ST7735::drawImage(int16_t x, int16_t y, Image& img) {
 }
 
 void Display_ST7735::drawImage(int16_t x, int16_t y, Image& img, int16_t w2, int16_t h2) {
+	// Serial.printf("x: %d y: %d img.w: %d img.h: %d w2: %d h2: %d\n", x, y, img._width, img._height, w2, h2);
 	img.nextFrame();
 	//out of screen
 	if ((x > _width) || ((x + abs(w2)) < 0) || (y > _height) || ((y + abs(h2)) < 0) || (w2 == 0) || (h2 == 0)) return;
@@ -119,10 +122,10 @@ void Display_ST7735::drawImage(int16_t x, int16_t y, Image& img, int16_t w2, int
 		setAddrWindow(0, 0, _width - 1, _height - 1);
 		
 		if (img.colorMode == ColorMode::rgb565) {
-			_tft.pushColors(img._buffer, w*h);
+			_tft.pushColors(img._buffer, w*h, false);
 		}
 		if (img.colorMode == ColorMode::index) {
-			_tft.pushColors(img._buffer, w*h);
+			_tft.pushColors(img._buffer, w*h, false);
 		}
 	}
 
@@ -136,6 +139,7 @@ void Display_ST7735::fillRect(int16_t x, int16_t y, int16_t w, int16_t h) {
 
 void Display_ST7735::setRotation(Rotation r) {
 	_tft.setRotation((uint8_t)r);
+	// _tft.setRotation(3);
 }
 
 void Display_ST7735::invertDisplay(bool i) {

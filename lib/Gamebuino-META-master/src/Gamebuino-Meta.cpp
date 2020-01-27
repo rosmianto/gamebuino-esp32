@@ -254,8 +254,7 @@ void Gamebuino::startScreen(){
 	Image startLights(startLightsData);
 	int8_t i = 24;
 	update();
-	// sound.play(startSound);
-	while(i){
+	while (i) {
 		while(!update());
 		i--;
 		display.clear();
@@ -282,7 +281,7 @@ void Gamebuino::titleScreen() {
 	if (titleScreenImageExists) {
 		display.init(ts_backup_width, ts_backup_height, filename);
 	}
-	
+
 	Image buttonsIcons = Image(buttonsIconsData);
 	
 	while(1) {

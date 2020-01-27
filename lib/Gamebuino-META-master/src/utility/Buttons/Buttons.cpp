@@ -26,6 +26,7 @@ Authors:
 #define TTGO_LEFT    38
 #define TTGO_CENTER  37
 #define TTGO_RIGHT   39
+#define TTGO_BOOT0    0
 
 #if CUSTOM_BUTTON_FUNCTIONS
 extern "C" {
@@ -40,15 +41,15 @@ void gamebuino_meta_buttons_init(void) {
 	pinMode(TTGO_LEFT, INPUT);
 	pinMode(TTGO_CENTER, INPUT);
 	pinMode(TTGO_RIGHT, INPUT);
+	pinMode(TTGO_BOOT0, INPUT_PULLUP);
 }
 
 uint8_t gamebuino_meta_buttons_update(void) {
 	uint8_t state = 0;
-
-	state |= digitalRead(TTGO_LEFT)   << 1;
-	state |= digitalRead(TTGO_CENTER) << 7;
-	state |= digitalRead(TTGO_RIGHT)  << 2;
-
+	state |= digitalRead(TTGO_LEFT)   << (uint8_t)BUTTON_A;
+	state |= digitalRead(TTGO_CENTER) << (uint8_t)BUTTON_B;
+	state |= digitalRead(TTGO_RIGHT)  << (uint8_t)BUTTON_RIGHT;
+	state |= digitalRead(TTGO_BOOT0)  << (uint8_t)BUTTON_HOME;
 	return state;
 }
 

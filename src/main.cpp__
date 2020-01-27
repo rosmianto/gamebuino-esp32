@@ -1,0 +1,36 @@
+#include <Arduino.h>
+#include <Gamebuino-Meta.h>
+
+int16_t width = 0;
+int16_t height = 0;
+
+void setup() {
+    pinMode(4, OUTPUT);
+    digitalWrite(4, HIGH);
+    Serial.begin(115200);
+    Serial.println("Starting gamebuino...");
+    gb.begin();
+    // gb.setScreenRotation(Rotation::down);
+    Serial.println("Object init'd");
+    width = gb.display.width();
+    height = gb.display.height();
+}
+
+void loop() {
+    gb.waitForUpdate();
+    // uint8_t rotation = (millis() / 1000) % 3;
+    // gb.setScreenRotation((Rotation)rotation);
+    gb.display.clear();
+    gb.display.println("width: " + String(width));
+    gb.display.println("height: " + String(height));
+    // gb.display.setColor(Color::red);
+    // gb.display.fillRect(0,0,width/2,height/2);
+    // gb.display.setColor(Color::green);
+    // gb.display.fillRect(width/2,0,width/2,height/2);
+    // gb.display.setColor(Color::blue);
+    // gb.display.fillRect(0,height/2,width/2,height/2);
+    // gb.display.setColor(Color::black);
+    // gb.display.fillRect(width/2,height/2,width/2,height/2);
+    // gb.display.setColor(Color::green);
+    // gb.display.fillRect(0,0,60,10);
+}

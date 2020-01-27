@@ -33,6 +33,8 @@ Authors:
 #define min(x, y) ((x < y) ? x : y)
 #endif
 
+#define RAM_BOUNDARY  0x3FFAE000
+
 namespace Gamebuino_Meta {
 
 extern Gamebuino* gbptr;
@@ -64,7 +66,7 @@ void Frame_Handler::allocateBuffer() {
 		img->_buffer = buf;
 		return;
 	}
-	if (buf && (uint32_t)buf >= 0x20000000) {
+	if (buf && (uint32_t)buf >= RAM_BOUNDARY) {
 		gb_free(buf);
 	}
 	if ((buf = (uint16_t *)gb_malloc(bytes))) {
@@ -194,7 +196,7 @@ void Image::init(const uint16_t* buffer) {
 		delete frame_handler;
 	}
 	bufferSize = 0;
-	if (_buffer && (uint32_t)_buffer >= 0x20000000) {
+	if (_buffer && (uint32_t)_buffer >= RAM_BOUNDARY) {
 		gb_free(_buffer);
 	}
 	uint16_t* buf = (uint16_t*)buffer;
@@ -233,7 +235,7 @@ void Image::init(const uint8_t* buffer) {
 	if (frame_handler) {
 		delete frame_handler;
 	}
-	if (bufferSize && _buffer && (uint32_t)_buffer >= 0x20000000) {
+	if (bufferSize && _buffer && (uint32_t)_buffer >= RAM_BOUNDARY) {
 		gb_free(_buffer);
 	}
 	
@@ -305,7 +307,7 @@ Image::~Image() {
 	if (isObjectCopy) {
 		return;
 	}
-	if (_buffer && (uint32_t)_buffer >= 0x20000000) {
+	if (_buffer && (uint32_t)_buffer >= RAM_BOUNDARY) {
 		gb_free(_buffer);
 		_buffer = 0;
 	}
