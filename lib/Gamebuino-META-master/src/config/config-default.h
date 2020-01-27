@@ -65,7 +65,7 @@
 #endif
 
 #ifndef AUTOSHOW_STARTSCREEN
-#define AUTOSHOW_STARTSCREEN 1
+#define AUTOSHOW_STARTSCREEN 0
 #endif
 
 ///////////////

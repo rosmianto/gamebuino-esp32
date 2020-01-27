@@ -31,14 +31,14 @@ const uint8_t NUM_BTN = 8;
 const uint8_t BTN_CS = 25;
 
 enum class Button : uint8_t {
-	down = 0,
-	left,
-	right,
-	up,
-	a,
-	b,
-	menu,
-	home,
+	home  = 7,
+	menu  = 6,
+	b     = 5,
+	a     = 4,
+	up    = 3,
+	right = 2,
+	left  = 1,
+	down  = 0,
 };
 
 class Buttons {

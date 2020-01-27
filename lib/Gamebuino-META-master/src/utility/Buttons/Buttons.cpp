@@ -23,10 +23,14 @@ Authors:
 
 #include "Buttons.h"
 
-#define TTGO_LEFT    38
-#define TTGO_CENTER  37
-#define TTGO_RIGHT   39
-#define TTGO_BOOT0    0
+#define TTGO_HOME   37  // No internal pullup.
+#define TTGO_MENU   38  // No internal pullup.
+#define TTGO_B      35  // No internal pullup.
+#define TTGO_A      33
+#define TTGO_UP     25
+#define TTGO_RIGHT  34  // No internal pullup.
+#define TTGO_LEFT   19
+#define TTGO_DOWN   36  // No internal pullup.
 
 #if CUSTOM_BUTTON_FUNCTIONS
 extern "C" {
@@ -38,18 +42,26 @@ uint8_t gamebuino_meta_buttons_update(void);
 #endif
 
 void gamebuino_meta_buttons_init(void) {
-	pinMode(TTGO_LEFT, INPUT);
-	pinMode(TTGO_CENTER, INPUT);
+	pinMode(TTGO_HOME, INPUT);
+	pinMode(TTGO_MENU, INPUT);
+	pinMode(TTGO_B, INPUT);
+	pinMode(TTGO_A, INPUT);
+	pinMode(TTGO_UP, INPUT);
 	pinMode(TTGO_RIGHT, INPUT);
-	pinMode(TTGO_BOOT0, INPUT_PULLUP);
+	pinMode(TTGO_LEFT, INPUT);
+	pinMode(TTGO_DOWN, INPUT);
 }
 
 uint8_t gamebuino_meta_buttons_update(void) {
 	uint8_t state = 0;
-	state |= digitalRead(TTGO_LEFT)   << (uint8_t)BUTTON_A;
-	state |= digitalRead(TTGO_CENTER) << (uint8_t)BUTTON_B;
-	state |= digitalRead(TTGO_RIGHT)  << (uint8_t)BUTTON_RIGHT;
-	state |= digitalRead(TTGO_BOOT0)  << (uint8_t)BUTTON_HOME;
+	state |= digitalRead(TTGO_HOME)  << (uint8_t)BUTTON_HOME;
+	state |= digitalRead(TTGO_MENU)  << (uint8_t)BUTTON_MENU;
+	state |= digitalRead(TTGO_B)     << (uint8_t)BUTTON_B;
+	state |= digitalRead(TTGO_A)     << (uint8_t)BUTTON_A;
+	state |= digitalRead(TTGO_UP)    << (uint8_t)BUTTON_UP;
+	state |= digitalRead(TTGO_RIGHT) << (uint8_t)BUTTON_RIGHT;
+	state |= digitalRead(TTGO_LEFT)  << (uint8_t)BUTTON_LEFT;
+	state |= digitalRead(TTGO_DOWN)  << (uint8_t)BUTTON_DOWN;
 	return state;
 }
 
@@ -85,7 +97,7 @@ void Buttons::update() {
 	SPI.endTransaction();
 #endif // CUSTOM_BUTTON_FUNCTIONS
 	//Print raw data to native USB
-	//SerialUSB.println(buttonsData,BIN);
+	Serial.println(buttonsData,BIN);
   
 	for (uint8_t thisButton = 0; thisButton < NUM_BTN; thisButton++) {
 		//extract the corresponding bit corresponding to the current button
