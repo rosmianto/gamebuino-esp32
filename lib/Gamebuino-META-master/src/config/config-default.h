@@ -9,7 +9,7 @@
 #endif
 
 #ifndef USE_SDFAT
-#define USE_SDFAT 0
+#define USE_SDFAT 1
 #endif
 
 #ifndef CUSTOM_TFT_FUNCTIONS
@@ -65,7 +65,7 @@
 #endif
 
 #ifndef AUTOSHOW_STARTSCREEN
-#define AUTOSHOW_STARTSCREEN 0
+#define AUTOSHOW_STARTSCREEN 1
 #endif
 
 ///////////////

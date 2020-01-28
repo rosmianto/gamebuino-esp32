@@ -224,6 +224,18 @@ void Gamebuino::begin() {
 	settings = Save("/SETTINGS.SAV", "GBMS");
 	settings.config(SETTINGSCONF_NUM_BLOCKS, settingsDefaults);
 	
+	//sound
+	sound.begin();
+	if (settings.get(SETTING_VOLUME_MUTE)) {
+		sound.mute();
+	}
+	sound.setVolume(settings.get(SETTING_VOLUME));
+
+	if (muteSound) {
+		settings.set(SETTING_VOLUME_MUTE, (int32_t)1);
+		sound.mute();
+	}
+
 	// language
 	language.setCurrentLang((LangCode)settings.get(SETTING_LANGUAGE));
 	
@@ -254,6 +266,7 @@ void Gamebuino::startScreen(){
 	Image startLights(startLightsData);
 	int8_t i = 24;
 	update();
+	sound.play(startSound);
 	while (i) {
 		while(!update());
 		i--;
@@ -322,7 +335,7 @@ void Gamebuino::titleScreen() {
 		display.drawImage(x, y, buttonsIcons, w, h);
 		
 		if (buttons.pressed(Button::a)) {
-			// sound.playOK();
+			sound.playOK();
 			break;
 		}
 	}
@@ -361,7 +374,7 @@ bool Gamebuino::update() {
 	gui.updatePopup();
 #endif // GUI_ENABLE_POPUP
 	
-	// sound.update(); // update sound stuff once per frame
+	sound.update(); // update sound stuff once per frame
 
 
 	//send buffer to the screen
@@ -456,14 +469,18 @@ void Gamebuino::checkHomeMenu() {
 		if (recording_screen) {
 			// stop the recording
 			HOME_MENU_SAVE_STATE;
-			// sound.startEfxOnly();
-			// bool isMute = sound.isMute();
-			// sound.mute();
+			sound.startEfxOnly();
+			bool isMute = sound.isMute();
+			sound.mute();
 			display.setFont(font3x5);
 			display.stopRecording(true);
 			recording_screen = false;
 			//refresh screen to erase log messages
 			updateDisplay();
+			if (!isMute) {
+				sound.unmute();
+			}
+			sound.stopEfxOnly();
 		
 			HOME_MENU_RESTORE_STATE;
 		}
@@ -520,6 +537,7 @@ void fileEndingGmvToBmp(char (&name)[N]) {
 void Gamebuino::homeMenu(){
 	//here we don't use gb.update and display.not to interfere with the game
 	//the only things we use are gb.tft and gb.buttons
+	sound.startEfxOnly();
 	
 	HOME_MENU_SAVE_STATE;
 
@@ -548,6 +566,11 @@ void Gamebuino::homeMenu(){
 #else // HOME_MENU_NO_EXIT
 		tft.drawBitmap(xOffset, yOffset + 4, homeIcons, 2);
 #endif // HOME_MENU_NO_EXIT
+		//erase soundwaves if muted
+		if (!sound.getVolume() || sound.isMute()) {
+			tft.setColor(DARKGRAY);
+			tft.fillRect(50 + xOffset, yOffset + 8, 10, 16);
+		}
 	}
 	
 	//logo
@@ -571,11 +594,13 @@ void Gamebuino::homeMenu(){
 		//Ensure constant framerate using millis (40ms = 25FPS)
 		while(!((millis() - lastMillis) > 40));
 		
+		sound.update(); // we still need sound...
 		lastMillis = millis();
 		buttons.update();
 		frameCounter++;
 		
 		if (buttons.released(Button::home) || buttons.released(Button::b) || buttons.released(Button::menu)) {
+			sound.stopEfxOnly();
 			HOME_MENU_RESTORE_STATE;
 			Hook_ExitHomeMenu();
 			return;
@@ -595,7 +620,48 @@ void Gamebuino::homeMenu(){
 			//// NEOPIXELS
 			case 0: break;
 			////VOLUME
-			case 1: break;
+			case 1: 
+				//toggle mute/unmute
+				if (buttons.released(Button::a)) {
+					if (sound.isMute()) {
+						sound.unmute();
+						settings.set(SETTING_VOLUME_MUTE, (int32_t)0);
+						if (!sound.getVolume()) {
+							sound.setVolume(6);
+							settings.set(SETTING_VOLUME, 6);
+						}
+					} else if (sound.getVolume()) {
+						sound.mute();
+						settings.set(SETTING_VOLUME_MUTE, 1);
+					} else {
+						sound.setVolume(6);
+						settings.set(SETTING_VOLUME, 6);
+					}
+					changed = true;
+				}
+				//increase volume
+				if ((buttons.repeat(Button::up, 4) && (sound.getVolume() < 8))) {
+					if (sound.isMute()) {
+						sound.unmute();
+						settings.set(SETTING_VOLUME_MUTE, (int32_t)0);
+						sound.setVolume(1);
+					} else {
+						sound.setVolume(sound.getVolume() + 1);
+					}
+					settings.set(SETTING_VOLUME, sound.getVolume());
+					changed = true;
+				}
+				//reduce volume
+				if (buttons.repeat(Button::down, 4) && sound.getVolume() && !sound.isMute()) {
+					sound.setVolume(sound.getVolume() - 1);
+					settings.set(SETTING_VOLUME, sound.getVolume());
+					changed = true;
+				}
+				
+				if (changed) {
+					sound.playOK();
+				}
+				break;
 #if !HOME_MENU_NO_EXIT
 			////EXIT
 			case 2:
@@ -670,7 +736,7 @@ void Gamebuino::homeMenu(){
 						tft.drawRect(1 + currentItem*32 + xOffset, yOffset+1, 30, 30);
 						delay(400);
 						inited = true;
-						// sound.stopEfxOnly();
+						sound.stopEfxOnly();
 						HOME_MENU_RESTORE_STATE;
 						Hook_ExitHomeMenu();
 						return;
@@ -703,6 +769,25 @@ void Gamebuino::homeMenu(){
 				tft.drawRect((currentItem-1)*32 + xOffset, yOffset, 32, 32);
 				tft.drawRect(1 + (currentItem-1)*32 + xOffset, yOffset+1, 30, 30);
 			}
+
+
+			////VOLUME
+			if (currentItem == 1) {
+				if (sound.getVolume() && !sound.isMute()) {
+					tft.setColor(WHITE);
+					tft.drawBitmap(48 + xOffset, yOffset + 4, volumeUnmuted, 2);
+				} else { //erase waveform if muted
+					tft.setColor(DARKGRAY);
+					tft.fillRect(50 + xOffset, yOffset + 8, 10, 16);
+				}
+			}
+		}
+
+		//draw volume level
+		if ((currentItem == 1) && (sound.getVolume())) {
+			tft.setColor(WHITE);
+			int volumeHeight = sound.getVolume() * 32 / 8;
+			tft.drawRect(currentItem*32 + 30 + xOffset, yOffset + (32 - volumeHeight), 2, volumeHeight);
 		}
 		
 		changed = false;
@@ -786,3 +871,19 @@ int8_t tone_identifier = -1;
 Gamebuino gb;
 #endif
 #endif
+
+void tone(uint32_t outputPin, uint32_t frequency, uint32_t duration) {
+	if (Gamebuino_Meta::gbptr) {
+		if (Gamebuino_Meta::tone_identifier != -1) {
+			Gamebuino_Meta::gbptr->sound.stop(Gamebuino_Meta::tone_identifier);
+		}
+		Gamebuino_Meta::tone_identifier = Gamebuino_Meta::gbptr->sound.tone(frequency, duration);
+	}
+}
+
+void noTone(uint32_t outputPin) {
+	if (Gamebuino_Meta::gbptr) {
+		Gamebuino_Meta::gbptr->sound.stop(Gamebuino_Meta::tone_identifier);
+		Gamebuino_Meta::tone_identifier = -1;
+	}
+}
