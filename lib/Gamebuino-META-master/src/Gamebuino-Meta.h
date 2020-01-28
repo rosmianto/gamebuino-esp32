@@ -28,8 +28,8 @@ Authors:
 
 #if USE_SDFAT
 #include <SPI.h>
-#include "utility/SdFat.h"
-extern SdFat SD;
+#include <SD.h>
+SPIClass sdSPI(VSPI);
 #endif
 
 #include "utility/Buttons.h"
@@ -45,7 +45,10 @@ extern SdFat SD;
 #include "utility/Save.h"
 
 namespace Gamebuino_Meta {
-#define SD_CS		(13u)
+#define SD_CS    (13u)
+#define SD_SCLK  (14u)
+#define SD_MISO  (02u)
+#define SD_MOSI  (15u)
 // #define NEOPIX_PIN	(38u)
 // #define BAT_PIN		(A5)
 

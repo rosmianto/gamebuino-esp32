@@ -29,10 +29,6 @@ Authors:
 #define min(x, y) ((x < y) ? x : y)
 #endif
 
-#if USE_SDFAT
-SdFat SD;
-#endif
-
 // a 3x5 font table
 extern const uint8_t font3x5[];
 
@@ -193,13 +189,14 @@ void Gamebuino::begin() {
 	updateDisplay();
 
 #if USE_SDFAT
-	sdInited = SD.begin(SD_CS, SPISettings(12000000, MSBFIRST, SPI_MODE0));
-	if (!sdInited) {
+	sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
+	if (!SD.begin(SD_CS, sdSPI)) {
 		display.setColor(Color::red, Color::black);
 		display.println("FAILED!");
 		updateDisplay();
 		delay(100);
-	} else {
+	}
+	else {
 		display.setColor(Color::lightgreen, Color::black);
 		display.println("OK!");
 		updateDisplay();
@@ -216,7 +213,6 @@ void Gamebuino::begin() {
 	if (!SD.exists(folder_name)) {
 		SD.mkdir(folder_name);
 	}
-	SD.chdir(folder_name);
 #endif
 	
 	save = Save(SAVEFILE_NAME, folder_name);
@@ -499,14 +495,13 @@ bool homeMenuGetUniquePath(char* name, uint8_t offset, uint8_t len) {
 		SD.mkdir("REC");
 	}
 	int32_t start;
-	File cache;
+	fs::File cache;
 	if (!SD.exists("REC/REC.CACHE")) {
-		cache = SD.open("REC/REC.CACHE", FILE_WRITE);
-		cache.rewind();
+		cache = SD.open("REC/REC.CACHE", "w");
 		f_write32(0, &cache); // images
 		cache.close();
 	}
-	cache = SD.open("REC/REC.CACHE", FILE_WRITE);
+	cache = SD.open("REC/REC.CACHE", "w");
 	cache.rewind();
 	start = f_read32(&cache);
 	start = sdPathNoDuplicate(name, offset, len, start + 1);
