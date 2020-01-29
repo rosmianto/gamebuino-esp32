@@ -53,7 +53,7 @@
 #endif
 
 #ifndef SAVEFILE_NAME
-#define SAVEFILE_NAME "SAVE.SAV"
+#define SAVEFILE_NAME "/SAVE.SAV"
 #endif
 
 #ifndef SAVECONF_DEFAULT_BLOBSIZE

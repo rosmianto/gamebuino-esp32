@@ -1,211 +1,124 @@
-#include <Arduino.h>
+//importe the Gamebuino library and the gb object
 #include <Gamebuino-Meta.h>
 
-boolean skip();
-void colors();
-void colorTest1();
-void donothing();
-void drawBottomLine();
-void loop();
-void screenBenchmark();
-void setup();
+SPIClass sdSPI(VSPI);
 
-int mode = 0;
-#define NUMMODES 3
-
-unsigned long lastMillis = 0;
-boolean paused = false;
-
+// gamebuino setup
 void setup() {
-    pinMode(4, OUTPUT);
-    digitalWrite(4, HIGH);
-    Serial.begin(115200);
-    Serial.println("Starting gamebuino...");
-    gb.begin();
+  sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
+	bool test = SD.begin(SD_CS, sdSPI);
+
+  pinMode(4, OUTPUT);
+  digitalWrite(4, HIGH);
+  Serial.begin(115200);
+  Serial.println("Starting gamebuino...");
+
+#if 0
+	Serial.println("List dir");
+	File root = SD.open("/");
+	File file = root.openNextFile();
+	while (file) {
+		Serial.print("FILE: ");
+		Serial.println(file.name());
+		file = root.openNextFile();
+	}
+
+	Serial.println("opening...");
+	File f = SD.open("/test.wav", "r");
+	if (!f) {
+		Serial.println("file open failed!");
+	}
+	else {
+		Serial.println("file open OK!");
+    uint8_t buf[20] = {0};
+    f.readBytes((char*)buf, 20);
+		f.close();
+    for (int i = 0; i < 20; i++) {
+      Serial.printf("%02x\n", buf[i]);
+    }
+	}
+#endif
+
+  gb.begin(test);
 }
 
-//dynamicaly change between display modes
-//this will jst break after looping for a while,
-//probably because of memory fragmentation
+// these will be aour track identifiers. -1 means "not playing"
+int8_t music = -1;
+int8_t fx = -1;
+
+/*
+ Files will be opened relative to the sketch folder,
+ so in this case this would be the "Audio"-folder.
+ So, you will have to place the test.wav as
+ "/Audio/test.wav" into the SD card, and NOT in the
+ root folder!
+ */
+
+
 void loop() {
-  screenBenchmark();
-  colors();
-  donothing();
-}
+  while(!gb.update());
 
-void drawBottomLine() {
-  //Current buffer mode
-  gb.display.cursorX = 0;
-  gb.display.cursorY = gb.display.height() - 11;
-  gb.display.setColor(WHITE);
-  gb.display.print(gb.display.width());
-  gb.display.print("x");
-  gb.display.print(gb.display.height());
-  if (gb.display.colorMode == ColorMode::rgb565) {
-    gb.display.print(" RGB");
-  } else {
-    gb.display.print(" INDEX");
+  // clear the previous screen
+  gb.display.clear();
+  
+  // let's just print some information on free ram and CPU first
+  gb.display.print("RAM:");
+  gb.display.println(gb.getFreeRam());
+  gb.display.print("CPU:");
+  gb.display.print(gb.getCpuLoad());
+  gb.display.println("%");
+  
+  // if we have music playing...let's print that!
+  if (music != -1) {
+    gb.display.println("Playing Music");
   }
-  gb.display.setColor(BROWN);
-  gb.display.cursorX = 13*4;
-  gb.display.setColor(BLUE);
-  gb.display.print(" >");
-  gb.display.setColor(BROWN);
-  gb.display.print("MODE ");
-
-  //bottom line indications
-  gb.display.setColor(BROWN);
-  gb.display.cursorX = 0;
-  gb.display.cursorY = gb.display.height() - 5;
+  
+  // here we check if the sound effects stopped playing.
+  // If they did, we will set our sound effect identifier back to -1
+  if (!gb.sound.isPlaying(fx)) {
+    fx = -1;
+  }
+  // we will not be checking if the music identifier is still playing,
+  // because we will start it as an infinite loop so we'll know that it
+  // won't stop suddenly, as opposed to the sound effect
+  
+  // and now, only print that an effect is playing
+  if (fx != -1) {
+    gb.display.println("Playing Effect");
+  }
+  
+  // bottom line indications
+  // this just prints the lower bar for what button does what
+  gb.display.setCursor(0, gb.display.height() - 5);
   gb.display.setColor(GREEN);
   gb.display.print("A");
   gb.display.setColor(BROWN);
-  gb.display.print("SKIP");
+  gb.display.print("MUSIC");
   gb.display.setColor(RED);
   gb.display.print(" B");
   gb.display.setColor(BROWN);
-  (paused == true) ? gb.display.print("PLAY ") : gb.display.print("STOP ");
-  gb.display.print(gb.getCpuLoad());
-  gb.display.print("%");
-  gb.display.print(" ");
-  gb.display.print(gb.frameCount%100);
-}
+  gb.display.print("EFFECT");
 
-boolean skip() {
-  if (gb.buttons.pressed(BUTTON_RIGHT)) {
-    mode++;
-    if (mode >= NUMMODES) {
-      mode = 0;
-    }
-    switch (mode) {
-      case 0:
-        gb.display.init(80, 64, ColorMode::rgb565);
-        break;
-      case 1:
-        gb.display.init(160, 128, ColorMode::index);
-        break;
-      case 2:
-        gb.display.init(80, 64, ColorMode::index);
-        break;
-    }
-  }
-
-
-  drawBottomLine();
-
-  //pause/unpause when B is pressed
-  if (gb.buttons.pressed(BUTTON_B)) {
-    paused = !paused;
-  }
-  //skip frame when A is pressed
+  // okay, now we check if we want to start music
   if (gb.buttons.pressed(BUTTON_A)) {
-    paused = true;
-    return true;
-  }
-  //skip every 2 seconds if not paused
-  if (((millis() - lastMillis) > 4000) && !paused) {
-    lastMillis = millis();
-    return true;
-  }
-  return false;
-}
-
-void donothing() {
-  while (1) {
-    while(!gb.update());
-    // clear the previous screen
-    gb.display.clear();
-    if (skip()) {
-      return;
+    if (music == -1) {
+      // time to start music!
+      // we are starting the file "test.wav" in our sketch folder
+      // gb.sound.play() will return the track identifier, which we will store into our music variable for later use
+      music = gb.sound.play("/test.wav", true); // true for infinite looping
+    } else {
+      // music was already running, time to stop it
+      gb.sound.stop(music);
+      music = -1; // aaaaaand reset our track indicator
     }
   }
-}
-
-void screenBenchmark() {
-  //Screen update benchmark
-  unsigned long timeBenchmark = 20;
-  while (1) {
-    while(!gb.update());
-    // clear the previous screen
-    gb.display.clear();
-    
-    gb.display.setColor(WHITE);
-    gb.display.print(1000 / (timeBenchmark));
-    gb.display.print(" FPS");
-    gb.display.setColor(BROWN);
-    gb.display.print(" (");
-    gb.display.print(timeBenchmark);
-    gb.display.println("ms)");
-    gb.display.setColor(WHITE);
-    gb.display.print(gb.display.getBufferSize() / 1024);
-    gb.display.print(" KB");
-    gb.display.setColor(BROWN);
-    gb.display.println(" BUFFER");
-
-    drawBottomLine();
-    uint16_t startTime = millis();
-    gb.tft.drawImage(0, 0, gb.display, gb.tft.width(), gb.tft.height());
-    uint16_t endTime = millis();
-    timeBenchmark = endTime - startTime;
-    if (skip()) {
-      return;
-    }
-  }
-}
-
-void colors() {
-  //Colors test 1/2
-  while (1) {
-    while(!gb.update());
-    // clear the previous screen
-    gb.display.clear();
-    
-    //first column
-    gb.display.setColor(WHITE);
-    gb.display.println("WHITE");
-    gb.display.setColor(GRAY);
-    gb.display.println("GRAY");
-    gb.display.setColor(DARKGRAY);
-    gb.display.println("DARKGRAY");
-    gb.display.setColor(BLACK, DARKGRAY);
-    gb.display.println("BLACK");
-    gb.display.setColor(PURPLE);
-    gb.display.println("PURPLE");
-    gb.display.setColor(PINK);
-    gb.display.println("PINK");
-    gb.display.setColor(RED);
-    gb.display.println("RED");
-    gb.display.setColor(ORANGE);
-    gb.display.println("ORANGE");
-
-    //second column
-    gb.display.cursorY = 0;
-    gb.display.cursorX = 36;
-    gb.display.setColor(BROWN);
-    gb.display.println("BROWN");
-    gb.display.cursorX = 36;
-    gb.display.setColor(BEIGE);
-    gb.display.println("BEIGE");
-    gb.display.cursorX = 36;
-    gb.display.setColor(YELLOW);
-    gb.display.println("YELLOW");
-    gb.display.cursorX = 36;
-    gb.display.setColor(LIGHTGREEN);
-    gb.display.println("LIGHTGREEN");
-    gb.display.cursorX = 36;
-    gb.display.setColor(GREEN);
-    gb.display.println("GREEN");
-    gb.display.cursorX = 36;
-    gb.display.setColor(DARKBLUE);
-    gb.display.println("DARKBLUE");
-    gb.display.cursorX = 36;
-    gb.display.setColor(BLUE);
-    gb.display.println("BLUE");
-    gb.display.cursorX = 36;
-    gb.display.setColor(LIGHTBLUE);
-    gb.display.println("LIGHTBLUE");
-    if (skip()) {
-      return;
+  
+  // check if we want to start a sound effect
+  if (gb.buttons.pressed(BUTTON_B)) {
+    // we only want to start it if it isn't already running...
+    if (fx == -1) {
+      // gb.sound.playOK() also returns the track identifier
+      fx = gb.sound.playOK();
     }
   }
 }

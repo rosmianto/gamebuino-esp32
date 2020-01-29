@@ -26,8 +26,7 @@ Authors:
 #include "../../config/config.h"
 
 #if USE_SDFAT
-#include "../SdFat.h"
-extern SdFat SD;
+#include <SD.h>
 #endif
 
 namespace Gamebuino_Meta {

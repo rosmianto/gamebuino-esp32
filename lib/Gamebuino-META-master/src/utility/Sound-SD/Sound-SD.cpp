@@ -24,8 +24,7 @@ Authors:
 #include "../Misc.h"
 
 #if USE_SDFAT
-#include "../SdFat.h"
-extern SdFat SD;
+#include <SD.h>
 #endif
 
 namespace Gamebuino_Meta {
@@ -59,18 +58,33 @@ Sound_Handler_Wav::~Sound_Handler_Wav() {
 
 bool Sound_Handler_Wav::init(const char* filename) {
 #if USE_SDFAT
-	file = SD.open(filename);
+	Serial.print("opening file: ");
+	Serial.println(filename);
+	file = SD.open(filename, "r");
 	if (!file) {
 		return false;
 	}
-	file.rewind();
-	if (f_read32(&file) != 0x46464952) { // header "RIFF"
+	Serial.println("file opened");
+	file.seek(0);
+
+	uint8_t buf[20] = {0};
+    file.readBytes((char*)buf, 20);
+    for (int i = 0; i < 20; i++) {
+      Serial.printf("%02x\n", buf[i]);
+    }
+
+	uint32_t type = f_read32(&file);
+	Serial.printf("0x%08x\n", type);
+	if (type != 0x46464952) { // header "RIFF"
+		Serial.println("not riff");
 		return false;
 	}
-	file.seekCur(4); // skip ChunkSize
+	file.seek(4, SeekMode::SeekCur); // skip ChunkSize
 	if (f_read32(&file) != 0x45564157) { // header "WAVE"
+		Serial.println("not wave");
 		return false;
 	}
+	Serial.println("correct header");
 	wav_offset = 16;
 	while (1) {
 		// read chunks until we get to the data chunk
@@ -79,7 +93,7 @@ bool Sound_Handler_Wav::init(const char* filename) {
 		if (type == 0x61746164) { // type "data", we have found our thing
 			break;
 		}
-		if (!file.seekCur(size)) {
+		if (!file.seek(size, SeekMode::SeekCur)) {
 			file.close();
 			return false;
 		}
@@ -134,7 +148,7 @@ void Sound_Handler_Wav::update() {
 #if USE_SDFAT
 	if (rewind_flag) {
 		rewind_flag = false;
-		file.seekSet(wav_offset);
+		file.seek(wav_offset);
 		channel->total = NUM_SAMPLES;
 		channel->index = 0;
 		channel->last = false;

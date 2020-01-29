@@ -1,3 +1,10 @@
 * Porting SDCard
 * Use higher clock frequency
 * Use DMA to LCD
+
+
+Bugs:
+* Low FPS
+* Audio not working
+* SDCard not properly initialized
+* 

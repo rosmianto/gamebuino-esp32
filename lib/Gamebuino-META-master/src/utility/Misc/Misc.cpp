@@ -79,27 +79,27 @@ RGB888 rgb565Torgb888(uint16_t c) {
 
 #if USE_SDFAT
 uint16_t f_read16(File* f) {
-	uint16_t result;
-	f->read(&result, 2);
+	uint16_t result = 0;
+	f->read((uint8_t*)&result, 2);
 	return result;
 }
 
 uint32_t f_read32(File* f) {
-	uint32_t result;
-	f->read(&result, 4);
+	uint32_t result = 0;
+	f->read((uint8_t*)&result, 4);
 	return result;
 }
 
 void f_write32(uint32_t b, File* f) {
 	//Write four bytes
 	//Luckily our MCU is little endian so byte order like this is fine
-	f->write(&b, 4);
+	f->write((uint8_t*)&b, 4);
 }
 
 void f_write16(uint16_t b, File* f) {
 	//Write two bytes
 	//Luckily our MCU is little endian so byte order like this is fine
-	f->write(&b, 2);
+	f->write((uint8_t*)&b, 2);
 }
 #endif // USE_SDFAT
 

@@ -77,9 +77,9 @@ SaveVar Save::getVarInfo(uint16_t i) {
 		error("accessing non-existing block");
 	}
 	SaveVar s;
-	f.seekSet(SAVEHEADER_SIZE + i);
+	f.seek(SAVEHEADER_SIZE + i);
 	uint8_t b;
-	if (!f.read(&b, 1)) {
+	if (!f.read((uint8_t*)&b, 1)) {
 		error("file I/O");
 	}
 	s.defined = (b & 0x80) ? true : false;
@@ -99,6 +99,7 @@ void Save::openFile() {
 	f = SD.open(savefile, FILE_WRITE);
 	if (!f) {
 		// eeeeeh, can't open it so we are read-only
+		Serial.println("Savefile failed");
 		open = true;
 		readOnly = true;
 		return;
@@ -106,8 +107,8 @@ void Save::openFile() {
 	open = true;
 	if (!exists) {
 		// the file doesn't exist yet, so let's create it
-		f.write(checkbytes, 4);
-		f.write(&blocks, 2); // write the amount of blocks
+		f.write((uint8_t*)checkbytes, 4);
+		f.write((uint8_t*)&blocks, 2); // write the amount of blocks
 		
 		// +4 because of 4-byte payload size
 		for (uint32_t i = 0; i < (5*(uint32_t)blocks) + 4; i++) {
@@ -116,18 +117,20 @@ void Save::openFile() {
 		
 		f.flush(); // make sure the file gets created
 	}
-	f.rewind(); // rewind it so that we can read its properties
+	f.seek(0); // rewind it so that we can read its properties
 	// the file already exists, so time to read some properties!
 	
 	// first check that the checkbytes match!
 	// we use the payload_size for this because that is just yet another free 4-byte buffer
-	f.read(&payload_size, 4);
-	if (memcmp(&payload_size, checkbytes, 4) != 0) {
+	f.read((uint8_t*)&payload_size, 4);
+	int tmp = memcmp(&payload_size, checkbytes, 4);
+	Serial.println("memcmp: " + String(tmp));
+	if (tmp != 0) {
 		error("Invalid save file");
 	}
 	uint16_t blocks_old;
-	f.read(&blocks_old, 2); // how many blocks do we have?
-	f.read(&payload_size, 4); // let's grab the payload size!
+	f.read((uint8_t*)&blocks_old, 2); // how many blocks do we have?
+	f.read((uint8_t*)&payload_size, 4); // let's grab the payload size!
 	
 	if (blocks_old == blocks) {
 		return; // everything is OK, nothing more to do
@@ -145,26 +148,26 @@ void Save::openFile() {
 		// next we offset the blocks
 		for (uint16_t i = 0; i < blocks_new; i++) {
 			uint32_t b;
-			f.seekSet(SAVEHEADER_SIZE + blocks_old + i*4);
-			f.read(&b, 4);
-			f.seekSet(SAVEHEADER_SIZE + blocks_new + i*4);
-			f.write(&b, 4);
+			f.seek(SAVEHEADER_SIZE + blocks_old + i*4);
+			f.read((uint8_t*)&b, 4);
+			f.seek(SAVEHEADER_SIZE + blocks_new + i*4);
+			f.write((uint8_t*)&b, 4);
 		}
 		
 		// now we fix the payload
 		for (uint32_t i = 0; i < payload_size; i++) {
 			uint8_t b;
 			f.seek(SAVEHEADER_SIZE + (blocks_old * 5) + i);
-			f.read(&b, 1);
+			f.read((uint8_t*)&b, 1);
 			f.seek(SAVEHEADER_SIZE + (blocks_new * 5) + i);
-			f.write(&b, 1);
+			f.write((uint8_t*)&b, 1);
 		}
-		f.truncate(SAVEHEADER_SIZE + (blocks_new * 5) + payload_size);
+		// f.truncate(SAVEHEADER_SIZE + (blocks_new * 5) + payload_size);
 	} else {
 		// we need to grow the block size
 		
 		// first we grow the file by the desired amount
-		f.seekSet(SAVEHEADER_SIZE + (blocks_old * 5) + payload_size);
+		f.seek(SAVEHEADER_SIZE + (blocks_old * 5) + payload_size);
 		for (uint32_t i = 0; i < (uint32_t)(blocks_new - blocks_old)*5; i++) {
 			f.write((uint8_t)0);
 		}
@@ -173,30 +176,30 @@ void Save::openFile() {
 		for (uint32_t i = 0; i < payload_size; i++) {
 			uint8_t b;
 			f.seek(SAVEHEADER_SIZE + (blocks_old * 5) + (payload_size - i - 1));
-			f.read(&b, 1);
+			f.read((uint8_t*)&b, 1);
 			f.seek(SAVEHEADER_SIZE + (blocks_new * 5) + (payload_size - i - 1));
-			f.write(&b, 1);
+			f.write((uint8_t*)&b, 1);
 		}
 		
 		// next we offset the blocks
 		
 		for (uint16_t i = 0; i < blocks_old; i++) {
 			uint32_t b;
-			f.seekSet(SAVEHEADER_SIZE + blocks_old + (blocks_old - i - 1)*4);
-			f.read(&b, 4);
-			f.seekSet(SAVEHEADER_SIZE + blocks_new + (blocks_old - i - 1)*4);
-			f.write(&b, 4);
+			f.seek(SAVEHEADER_SIZE + blocks_old + (blocks_old - i - 1)*4);
+			f.read((uint8_t*)&b, 4);
+			f.seek(SAVEHEADER_SIZE + blocks_new + (blocks_old - i - 1)*4);
+			f.write((uint8_t*)&b, 4);
 		}
 		
 		// finally we nullate the new block metadata
-		f.seekSet(SAVEHEADER_SIZE + blocks_old);
+		f.seek(SAVEHEADER_SIZE + blocks_old);
 		for (uint16_t i = blocks_old; i < blocks_new; i++) {
 			f.write((uint8_t)0);
 		}
 	}
 	blocks = blocks_new;
-	f.seekSet(4);
-	f.write(&blocks_new, 2);
+	f.seek(4);
+	f.write((uint8_t*)&blocks_new, 2);
 	f.flush();
 #endif // USE_SDFAT
 }
@@ -207,8 +210,8 @@ void Save::openFile() {
 uint32_t Save::_get(uint16_t i) {
 #if USE_SDFAT
 	uint32_t val;
-	f.seekSet(SAVEHEADER_SIZE + blocks + (4*i));
-	f.read(&val, 4);
+	f.seek(SAVEHEADER_SIZE + blocks + (4*i));
+	f.read((uint8_t*)&val, 4);
 	return val;
 #else // USE_SDFAT
 	return 0;
@@ -263,14 +266,14 @@ bool Save::get(uint16_t i, void* buf, uint32_t bufsize) {
 	
 	// determine how many bytes to set
 	uint32_t size;
-	f.seekSet(SAVEFILE_PAYLOAD_START + b);
-	f.read(&size, 4);
+	f.seek(SAVEFILE_PAYLOAD_START + b);
+	f.read((uint8_t*)&size, 4);
 	size = min(size, bufsize);
 	
 	// wwe already have the file pointer at the start
 	
 	// now finally perform the read
-	f.read(buf, size);
+	f.read((uint8_t*)buf, size);
 	return true;
 #else // USE_SDFAT
 	return false;
@@ -282,8 +285,8 @@ bool Save::get(uint16_t i, void* buf, uint32_t bufsize) {
 
 void Save::_set(uint16_t i, uint32_t b) {
 #if USE_SDFAT
-	f.seekSet(SAVEHEADER_SIZE + blocks + (4*i));
-	f.write(&b, 4);
+	f.seek(SAVEHEADER_SIZE + blocks + (4*i));
+	f.write((uint8_t*)&b, 4);
 #endif // USE_SDFAT
 }
 
@@ -308,7 +311,7 @@ bool Save::set(uint16_t i, int32_t num) {
 		}
 	}
 	if (!s.defined) {
-		f.seekSet(SAVEHEADER_SIZE + i);
+		f.seek(SAVEHEADER_SIZE + i);
 		f.write((uint8_t)(0x80 | SAVETYPE_INT));
 	}
 	_set(i, (uint32_t)num);
@@ -324,9 +327,9 @@ void Save::newBlob(uint16_t i, uint32_t size) {
 	// set the int-table pointer
 	_set(i, payload_size);
 	
-	f.seekSet(SAVEFILE_PAYLOAD_START + payload_size);
+	f.seek(SAVEFILE_PAYLOAD_START + payload_size);
 	// write the size
-	f.write(&size, 4);
+	f.write((uint8_t*)&size, 4);
 	// now fill the payload with zeros
 	for(uint32_t j = 0; j < size; j++) {
 		f.write((uint8_t)0);
@@ -334,8 +337,8 @@ void Save::newBlob(uint16_t i, uint32_t size) {
 	
 	// aaand increase the payload size
 	payload_size += size + 4; // +4 because size is stored in payload
-	f.seekSet(6);
-	f.write(&payload_size, 4);
+	f.seek(6);
+	f.write((uint8_t*)&payload_size, 4);
 #endif // USE_SDFAT
 }
 
@@ -380,18 +383,18 @@ bool Save::set(uint16_t i, void* buf, uint32_t bufsize) {
 	
 	if (!s.defined) {
 		// first we create the blob entry
-		f.seekSet(SAVEHEADER_SIZE + i);
+		f.seek(SAVEHEADER_SIZE + i);
 		f.write((uint8_t)(0x80 | SAVETYPE_BLOB));
 		newBlob(i, want_size);
 	}
 	
 	uint32_t b = _get(i);
-	f.seekSet(SAVEFILE_PAYLOAD_START + b);
+	f.seek(SAVEFILE_PAYLOAD_START + b);
 	
 	
 	// determine how many bytes to set
 	uint32_t size;
-	f.read(&size, 4);
+	f.read((uint8_t*)&size, 4);
 	if (size != want_size) {
 		// ok the size is different, so let's change this!
 		del(i);
@@ -402,7 +405,7 @@ bool Save::set(uint16_t i, void* buf, uint32_t bufsize) {
 	// we already seeked correctly
 	
 	// now finally perform the write
-	f.write(buf, size);
+	f.write((uint8_t*)buf, size);
 	f.flush();
 	return true;
 #else // USE_SDFAT
@@ -424,7 +427,7 @@ void Save::del(uint16_t i) {
 	}
 	
 	// let's delete the entry first
-	f.seekSet(SAVEHEADER_SIZE + i);
+	f.seek(SAVEHEADER_SIZE + i);
 	f.write((uint8_t)0);
 	
 	if (s.type == SAVETYPE_INT) {
@@ -436,9 +439,9 @@ void Save::del(uint16_t i) {
 	uint32_t b = _get(i);
 	
 	// determine the size of the payload
-	f.seekSet(SAVEFILE_PAYLOAD_START + b);
+	f.seek(SAVEFILE_PAYLOAD_START + b);
 	uint32_t size;
-	f.read(&size, 4);
+	f.read((uint8_t*)&size, 4);
 	size += 4; // we need to also delete the size bytes
 	
 	// now we need to loop all blocks and shift those with a payload pointer that is greater down a bit
@@ -456,17 +459,17 @@ void Save::del(uint16_t i) {
 	// ok now we actually need to shift the payload data
 	for (uint32_t j = 0; j < (payload_size-b-size); j++) {
 		uint8_t c;
-		f.seekSet(SAVEFILE_PAYLOAD_START + b + size + j);
-		f.read(&c, 1);
-		f.seekSet(SAVEFILE_PAYLOAD_START + b + j);
+		f.seek(SAVEFILE_PAYLOAD_START + b + size + j);
+		f.read((uint8_t*)&c, 1);
+		f.seek(SAVEFILE_PAYLOAD_START + b + j);
 		f.write(c);
 	}
 	
 	// now all that is left to do is to adjust the payload and filesize
 	payload_size -= size;
-	f.seekSet(6);
-	f.write(&payload_size, 4);
-	f.truncate(SAVEFILE_PAYLOAD_START + payload_size);
+	f.seek(6);
+	f.write((uint8_t*)&payload_size, 4);
+	// f.truncate(SAVEFILE_PAYLOAD_START + payload_size);
 	f.flush();
 #endif // USE_SDFAT
 }

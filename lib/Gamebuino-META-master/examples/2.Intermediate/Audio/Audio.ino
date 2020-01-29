@@ -69,7 +69,7 @@ void loop() {
       // time to start music!
       // we are starting the file "test.wav" in our sketch folder
       // gb.sound.play() will return the track identifier, which we will store into our music variable for later use
-      music = gb.sound.play("test.wav", true); // true for infinite looping
+      music = gb.sound.play("/test.wav", true); // true for infinite looping
     } else {
       // music was already running, time to stop it
       gb.sound.stop(music);

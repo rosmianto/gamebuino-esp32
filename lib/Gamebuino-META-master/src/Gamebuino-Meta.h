@@ -24,12 +24,13 @@ Authors:
 #ifndef _GAMEBUINO_META_H_
 #define	_GAMEBUINO_META_H_
 
+#include "Arduino.h"
 #include "config/config.h"
 
 #if USE_SDFAT
-#include <SPI.h>
+#include <FS.h>
 #include <SD.h>
-SPIClass sdSPI(VSPI);
+#include <SPI.h>
 #endif
 
 #include "utility/Buttons.h"
@@ -61,14 +62,14 @@ public:
 	Sound sound;
 	Display_ST7735 tft = Display_ST7735(TFT_CS, TFT_DC);
 	Image lights = Image(2, 4, ColorMode::rgb565);
-	Save save;
-	Save settings;
+	// Save save;
+	// Save settings;
 	Language language;
 	Gui gui;
 	MetaMode metaMode;
 	Collide collide;
 
-	void begin();
+	void begin(bool test);
 	void startScreen();
 	void titleScreen();
 	bool update();

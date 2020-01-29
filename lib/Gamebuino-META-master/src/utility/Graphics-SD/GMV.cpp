@@ -26,8 +26,7 @@ Authors:
 #define CONVERT_MAGIC 0xA1000000
 
 #if USE_SDFAT
-#include "../SdFat.h"
-extern SdFat SD;
+#include <SD.h>
 #endif
 
 namespace Gamebuino_Meta {
@@ -51,7 +50,7 @@ GMV::GMV(Image* _img, char* filename) {
 		img->frames = 0;
 		return;
 	}
-	file.rewind();
+	file.seek(0);
 	uint16_t header = f_read16(&file);
 	if (header == 0x4D42) {
 		// we got a BMP image!
@@ -80,7 +79,7 @@ GMV::GMV(Image* _img, char* filename) {
 		if (!file) {
 			return;
 		}
-		file.rewind();
+		file.seek(0);
 		header = f_read16(&file);
 	}
 	if (header != 0x5647) { // header "GV"
@@ -88,7 +87,7 @@ GMV::GMV(Image* _img, char* filename) {
 		return;
 	}
 	header_size = f_read16(&file);
-	file.seekCur(1); // trash version byte
+	file.seek(1, SeekMode::SeekCur); // trash version byte
 #if STRICT_IMAGES
 	int16_t w = f_read16(&file);
 	int16_t h = f_read16(&file);
@@ -113,7 +112,7 @@ GMV::GMV(Image* _img, char* filename) {
 	} else {
 		img->transparentColor = f_read16(&file);
 	}
-	file.seekSet(header_size);
+	file.seek(header_size);
 
 #if STRICT_IMAGES
 	if (!_w || !_h) {
@@ -184,7 +183,7 @@ void GMV::convertFromBMP(BMP& bmp, char* newname) {
 	bool success;
 	do {
 		success = true;
-		f.seekSet(header_size);
+		f.seek(header_size);
 		for (uint16_t frame = 0; frame < img->frames; frame++) {
 			uint32_t t = bmp.readFrame(frame, img->_buffer, transparentColor, &file);
 			if (t != transparentColor) {
@@ -207,7 +206,7 @@ void GMV::convertFromBMP(BMP& bmp, char* newname) {
 	} while(!success);
 	
 	if (img->colorMode == ColorMode::rgb565) {
-		f.seekSet(12);
+		f.seek(12);
 		f_write16(img->transparentColor, &f);
 	}
 	bmp.setCreatorBits(CONVERT_MAGIC, &file);
@@ -251,7 +250,7 @@ void GMV::writeColor(File* f, uint16_t color, uint8_t count) {
 
 #if USE_SDFAT
 void GMV::writeHeader(File* f) {
-	f->rewind();
+	f->seek(0);
 	f_write16(0x5647, f); // header "GV"
 	f_write16(0, f); // header size, fill in later
 	f->write((uint8_t)0); // version
@@ -268,10 +267,10 @@ void GMV::writeHeader(File* f) {
 		f_write16(img->transparentColor, f);
 	}
 	header_size = 14; // currently it is still all static
-	f->seekSet(2);
+	f->seek(2);
 	f_write16(header_size, f); // fill in header size!
 	f->flush();
-	f->seekSet(header_size);
+	f->seek(header_size);
 }
 #endif // USE_SDFAT
 
@@ -350,7 +349,7 @@ void GMV::readFrame() {
 			count = read;
 			if (count == 0x80) {
 				// we have a single, un-altered pixel
-				file.read(&color, 2);
+				file.read((uint8_t*)&color, 2);
 				buf[pixels_current] = color;
 				pixels_current++;
 				continue;
@@ -372,7 +371,7 @@ void GMV::readFrame() {
 			count &= 0x7F;
 			i = file.read();
 			if (i == 0x80) {
-				file.read(&color, 2);
+				file.read((uint8_t*)&color, 2);
 			} else if (i == 0x7F) {
 				color = img->transparentColor;
 			} else {
@@ -396,7 +395,7 @@ void GMV::readFrame() {
 
 void GMV::setFrame(uint16_t frame) {
 #if USE_SDFAT
-	file.seekSet(header_size);
+	file.seek(header_size);
 	if (!frame) {
 		return;
 	}
@@ -421,7 +420,7 @@ void GMV::finishSave(char* filename, uint16_t frames, bool output, Display_ST773
 	}
 	
 	
-	file.seekSet(9);
+	file.seek(9);
 	f_write16(frames, &file); // fill in the number of frames!
 	if (!filename) {
 		file.close();

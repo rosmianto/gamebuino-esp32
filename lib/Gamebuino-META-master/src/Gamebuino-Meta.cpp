@@ -29,6 +29,8 @@ Authors:
 #define min(x, y) ((x < y) ? x : y)
 #endif
 
+extern SPIClass sdSPI;
+
 // a 3x5 font table
 extern const uint8_t font3x5[];
 
@@ -144,7 +146,7 @@ const uint16_t startSound[] = {0x0005,0x338,0x3FC,0x254,0x1FC,0x25C,0x3FC,0x368,
 
 Gamebuino* gbptr = nullptr;
 
-void Gamebuino::begin() {
+void Gamebuino::begin(bool test) {
 	// first we disable the watchdog timer so that we tell the bootloader everything is fine!
 	// WDT->CTRL.bit.ENABLE = 0;
 	gbptr = this;
@@ -189,8 +191,7 @@ void Gamebuino::begin() {
 	updateDisplay();
 
 #if USE_SDFAT
-	sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
-	if (!SD.begin(SD_CS, sdSPI)) {
+	if (!test) {
 		display.setColor(Color::red, Color::black);
 		display.println("FAILED!");
 		updateDisplay();
@@ -215,25 +216,25 @@ void Gamebuino::begin() {
 	}
 #endif
 	
-	save = Save(SAVEFILE_NAME, folder_name);
+	// save = Save(SAVEFILE_NAME, folder_name);
 	
-	settings = Save("/SETTINGS.SAV", "GBMS");
-	settings.config(SETTINGSCONF_NUM_BLOCKS, settingsDefaults);
+	// settings = Save("/SETTINGS.SAV", "GBMS");
+	// settings.config(SETTINGSCONF_NUM_BLOCKS, settingsDefaults);
 	
 	//sound
 	sound.begin();
-	if (settings.get(SETTING_VOLUME_MUTE)) {
-		sound.mute();
-	}
-	sound.setVolume(settings.get(SETTING_VOLUME));
+	// if (settings.get(SETTING_VOLUME_MUTE)) {
+	// 	sound.mute();
+	// }
+	// sound.setVolume(settings.get(SETTING_VOLUME));
 
 	if (muteSound) {
-		settings.set(SETTING_VOLUME_MUTE, (int32_t)1);
+		// settings.set(SETTING_VOLUME_MUTE, (int32_t)1);
 		sound.mute();
 	}
 
 	// language
-	language.setCurrentLang((LangCode)settings.get(SETTING_LANGUAGE));
+	// language.setCurrentLang((LangCode)settings.get(SETTING_LANGUAGE));
 	
 	Graphics_SD::setTft(&tft);
 	// only do titleScreen after a hard power on
@@ -498,14 +499,15 @@ bool homeMenuGetUniquePath(char* name, uint8_t offset, uint8_t len) {
 	fs::File cache;
 	if (!SD.exists("REC/REC.CACHE")) {
 		cache = SD.open("REC/REC.CACHE", "w");
+		cache.seek(0);
 		f_write32(0, &cache); // images
 		cache.close();
 	}
 	cache = SD.open("REC/REC.CACHE", "w");
-	cache.rewind();
+	cache.seek(0);
 	start = f_read32(&cache);
 	start = sdPathNoDuplicate(name, offset, len, start + 1);
-	cache.rewind();
+	cache.seek(0);
 	if (start == -1) {
 		f_write32(0, &cache);
 		start = sdPathNoDuplicate(name, offset, len);
@@ -620,17 +622,17 @@ void Gamebuino::homeMenu(){
 				if (buttons.released(Button::a)) {
 					if (sound.isMute()) {
 						sound.unmute();
-						settings.set(SETTING_VOLUME_MUTE, (int32_t)0);
+						// settings.set(SETTING_VOLUME_MUTE, (int32_t)0);
 						if (!sound.getVolume()) {
 							sound.setVolume(6);
-							settings.set(SETTING_VOLUME, 6);
+							// settings.set(SETTING_VOLUME, 6);
 						}
 					} else if (sound.getVolume()) {
 						sound.mute();
-						settings.set(SETTING_VOLUME_MUTE, 1);
+						// settings.set(SETTING_VOLUME_MUTE, 1);
 					} else {
 						sound.setVolume(6);
-						settings.set(SETTING_VOLUME, 6);
+						// settings.set(SETTING_VOLUME, 6);
 					}
 					changed = true;
 				}
@@ -638,18 +640,18 @@ void Gamebuino::homeMenu(){
 				if ((buttons.repeat(Button::up, 4) && (sound.getVolume() < 8))) {
 					if (sound.isMute()) {
 						sound.unmute();
-						settings.set(SETTING_VOLUME_MUTE, (int32_t)0);
+						// settings.set(SETTING_VOLUME_MUTE, (int32_t)0);
 						sound.setVolume(1);
 					} else {
 						sound.setVolume(sound.getVolume() + 1);
 					}
-					settings.set(SETTING_VOLUME, sound.getVolume());
+					// settings.set(SETTING_VOLUME, sound.getVolume());
 					changed = true;
 				}
 				//reduce volume
 				if (buttons.repeat(Button::down, 4) && sound.getVolume() && !sound.isMute()) {
 					sound.setVolume(sound.getVolume() - 1);
-					settings.set(SETTING_VOLUME, sound.getVolume());
+					// settings.set(SETTING_VOLUME, sound.getVolume());
 					changed = true;
 				}
 				
@@ -797,7 +799,7 @@ void Gamebuino::changeGame(){
 }
 
 void Gamebuino::getDefaultName(char* string){
-	settings.get(SETTING_DEFAULTNAME, string, 13);
+	// settings.get(SETTING_DEFAULTNAME, string, 13);
 }
 
 bool Gamebuino::collidePointRect(int16_t x1, int16_t y1 ,int16_t x2 ,int16_t y2, int16_t w, int16_t h){

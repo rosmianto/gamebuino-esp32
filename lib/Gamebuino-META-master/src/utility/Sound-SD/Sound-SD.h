@@ -26,7 +26,7 @@ Authors:
 #include "../../config/config.h"
 #include "../Sound.h"
 #if USE_SDFAT
-#include "../SdFat.h"
+#include <SD.h>
 #endif
 
 namespace Gamebuino_Meta {

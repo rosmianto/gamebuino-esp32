@@ -56,12 +56,12 @@ BMP::BMP(Image* img, uint16_t _frames) {
 #if USE_SDFAT
 BMP::BMP(File* file, Image* img) {
 	valid = false;
-	file->rewind();
+	file->seek(0);
 	if (f_read16(file) != 0x4D42) {
 		// no valid BMP header
 		return;
 	}
-	file->seekCur(4); // skip file size
+	file->seek(4, SeekMode::SeekCur); // skip file size
 	creatorBits = f_read32(file);
 	image_offset = f_read32(file);
 	uint32_t header_size = f_read32(file);
@@ -131,12 +131,12 @@ BMP::BMP(File* file, Image* img) {
 	
 	
 	if (depth == 4) {
-		file->seekCur(12); // we ignore image size, x pixels and y pixels per meter
+		file->seek(12, SeekMode::SeekCur); // we ignore image size, x pixels and y pixels per meter
 		uint8_t num_colors = f_read32(file);
 		if (num_colors > 16) {
 			num_colors = 16;
 		}
-		file->seekSet(header_size + 14);
+		file->seek(header_size + 14);
 		for (uint8_t i = 0; i < num_colors; i++) {
 			uint8_t b = file->read();
 			uint8_t g = file->read();
@@ -150,7 +150,7 @@ BMP::BMP(File* file, Image* img) {
 		img->useTransparentIndex = false; // TODO: transparency detection
 	} else {
 		if (createRGBAmasks) {
-			file->seekCur(20); // we ignore mage size, x pixels per meter, y pixels per meter, colors and important colors
+			file->seek(20, SeekMode::SeekCur); // we ignore mage size, x pixels per meter, y pixels per meter, colors and important colors
 			for (uint8_t i = 0; i < 4; i++) {
 				uint32_t mask = f_read32(file);
 				for (uint8_t j = 0; j < 4; j++) {
@@ -170,7 +170,7 @@ BMP::BMP(File* file, Image* img) {
 		img->transparentColor = 0; // transparent color is detected during frame analysis
 	}
 	
-	file->seekSet(image_offset);
+	file->seek(image_offset);
 	valid = true;
 }
 #endif // USE_SDFAT
@@ -185,7 +185,7 @@ uint32_t BMP::getCreatorBits() {
 
 #if USE_SDFAT
 void BMP::setCreatorBits(uint32_t bits, File* file) {
-	file->seekSet(6);
+	file->seek(6);
 	f_write32(bits, file);
 }
 #endif // USE_SDFAT
@@ -207,8 +207,8 @@ uint32_t BMP::writeHeader(File* file) {
 	uint32_t file_size = image_offset + image_size;
 	
 	
-	file->rewind();
-	file->write("BM"); // this actually is a BMP image
+	file->seek(0);
+	file->write((const uint8_t*)"BM", 2); // this actually is a BMP image
 	f_write32(file_size, file);
 	f_write32(0, file); // creator bits
 	f_write32(image_offset, file);
@@ -263,7 +263,7 @@ uint32_t BMP::getRowSize() {
 uint16_t BMP::readBuffer(uint16_t* buf, uint32_t offset, uint16_t transparentColor, File* file) {
 	
 	uint32_t rowSize = getRowSize();
-	file->seekSet(offset);
+	file->seek(offset);
 	if (depth == 4) {
 		uint8_t dif = rowSize - ((width + 1) / 2);
 		
@@ -284,7 +284,7 @@ uint16_t BMP::readBuffer(uint16_t* buf, uint32_t offset, uint16_t transparentCol
 				l = indexMap[l];
 				rambuffer[j] = (u << 4) | l;
 			}
-			file->seekCur(dif);
+			file->seek(dif, SeekMode::SeekCur);
 		}
 	} else {
 		uint8_t dif = rowSize - (width * 3);
@@ -324,7 +324,7 @@ uint16_t BMP::readBuffer(uint16_t* buf, uint32_t offset, uint16_t transparentCol
 				}
 			}
 			if (depth != 32) { // 32-bit always has dif 0
-				file->seekCur(dif);
+				file->seek(dif, SeekMode::SeekCur);
 			}
 		}
 	}
@@ -392,7 +392,7 @@ void BMP::writeBuffer(uint16_t* buffer, uint16_t transparentColor, File* file) {
 void BMP::writeFrame(uint16_t frame, uint16_t* buf, uint16_t transparentColor, File* file) {
 	uint32_t size = getRowSize() * height;
 	uint32_t offset = size * (frames - frame - 1);
-	file->seekSet(image_offset + offset);
+	file->seek(image_offset + offset);
 	writeBuffer(buf, transparentColor, file);
 }
 #endif // USE_SDFAT

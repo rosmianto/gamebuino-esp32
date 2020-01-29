@@ -102,7 +102,7 @@ void Buttons::update() {
 	SPI.endTransaction();
 #endif // CUSTOM_BUTTON_FUNCTIONS
 	//Print raw data to native USB
-	Serial.println(buttonsData,BIN);
+	// Serial.println(buttonsData,BIN);
   
 	for (uint8_t thisButton = 0; thisButton < NUM_BTN; thisButton++) {
 		//extract the corresponding bit corresponding to the current button
