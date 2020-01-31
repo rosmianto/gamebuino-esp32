@@ -58,6 +58,14 @@ Sound_Handler_Wav::~Sound_Handler_Wav() {
 
 bool Sound_Handler_Wav::init(const char* filename) {
 #if USE_SDFAT
+	#define SD_CS    (13u)
+	#define SD_SCLK  (14u)
+	#define SD_MISO  (02u)
+	#define SD_MOSI  (15u)
+	SPIClass sdSPI(VSPI);
+	sdSPI.begin(SD_SCLK, SD_MISO, SD_MOSI, SD_CS);
+	bool test = SD.begin(SD_CS, sdSPI);
+
 	Serial.print("opening file: ");
 	Serial.println(filename);
 	file = SD.open(filename, "r");
@@ -66,12 +74,6 @@ bool Sound_Handler_Wav::init(const char* filename) {
 	}
 	Serial.println("file opened");
 	file.seek(0);
-
-	uint8_t buf[20] = {0};
-    file.readBytes((char*)buf, 20);
-    for (int i = 0; i < 20; i++) {
-      Serial.printf("%02x\n", buf[i]);
-    }
 
 	uint32_t type = f_read32(&file);
 	Serial.printf("0x%08x\n", type);

@@ -1,4 +1,4 @@
-* Porting SDCard
+v Porting SDCard
 * Use higher clock frequency
 * Use DMA to LCD
 
