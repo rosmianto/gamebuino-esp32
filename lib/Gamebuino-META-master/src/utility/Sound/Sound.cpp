@@ -89,7 +89,7 @@ void tcDisable() {
 void tcConfigure(uint32_t sampleRate) {
 	timer = timerBegin(0, 80, true);                    // use timer TimerNo, pre-scaler is 80 (divide by 8000), count up
 	timerAttachInterrupt(timer, &Audio_Handler, true);  // P3= edge triggered
-	timerAlarmWrite(timer, 40, true);                   // 44100Hz sample rate
+	timerAlarmWrite(timer, 23, true);                   // 44100Hz sample rate
 }
 
 int8_t findEmptyChannel() {

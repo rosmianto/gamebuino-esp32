@@ -12,7 +12,6 @@ void setup() {
   digitalWrite(4, HIGH);
   Serial.begin(115200);
   Serial.println("Starting gamebuino...");
-  Serial.println(ESP.getCpuFreqMHz());
 
 #if 0
 	Serial.println("List dir");

@@ -1,4 +1,3 @@
-#include <Arduino.h>
 #include <Gamebuino-Meta.h>
 
 boolean skip();
@@ -21,7 +20,7 @@ void setup() {
     digitalWrite(4, HIGH);
     Serial.begin(115200);
     Serial.println("Starting gamebuino...");
-    gb.begin();
+    gb.begin(false);
 }
 
 //dynamicaly change between display modes
