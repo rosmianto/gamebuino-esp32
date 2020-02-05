@@ -1,10 +1,10 @@
 v Porting SDCard
-* Use higher clock frequency
+v Use higher clock frequency (already running at 240MHz)
 * Use DMA to LCD
 
 
 Bugs:
 * Low FPS
-* Audio not working
+v Audio not working (it's working now, but it's very buggy and doesn't play sound file smoothly)
 * SDCard not properly initialized
 * 
