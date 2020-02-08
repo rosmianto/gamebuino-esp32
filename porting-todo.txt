@@ -1,10 +1,8 @@
-v Porting SDCard
+TO DO:
+v Port SDCard
 v Use higher clock frequency (already running at 240MHz)
-* Use DMA to LCD
-
-
-Bugs:
-* Low FPS
-v Audio not working (it's working now, but it's very buggy and doesn't play sound file smoothly)
-* SDCard not properly initialized
-* 
+* Use DMA for LCD
+v Add keypad
+* Game loader
+v Audio
+* Multiplayer using WiFi or Bluetooth

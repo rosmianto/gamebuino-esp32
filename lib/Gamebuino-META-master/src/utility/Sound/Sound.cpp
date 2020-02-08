@@ -27,6 +27,9 @@ Authors:
 #include "Raw.h"
 #include "../Sound-SD.h"
 
+void I2S_Init();
+void I2S_Write(char* data, int numData);
+
 namespace Gamebuino_Meta {
 
 #if SOUND_ENABLE_FX
@@ -66,31 +69,6 @@ hw_timer_t * timer = nullptr;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 void IRAM_ATTR Audio_Handler();
-
-bool tcIsSyncing() {
-	return false;
-}
-
-void tcStart() {
-	timerAlarmEnable(timer);  // enable
-	delay(1);                 // Allow system to settle
-}
-
-void tcReset() {
-	timerAlarmDisable(timer);
-	timerAlarmEnable(timer);
-	delay(1);
-}
-
-void tcDisable() {
-	timerAlarmDisable(timer);
-}
-
-void tcConfigure(uint32_t sampleRate) {
-	timer = timerBegin(0, 80, true);                    // use timer TimerNo, pre-scaler is 80 (divide by 8000), count up
-	timerAttachInterrupt(timer, &Audio_Handler, true);  // P3= edge triggered
-	timerAlarmWrite(timer, 23, true);                   // 44100Hz sample rate
-}
 
 int8_t findEmptyChannel() {
 	for (uint8_t i = 0; i < SOUND_CHANNELS; i++) {
@@ -302,6 +280,11 @@ void Sound::update() {
 #endif // SOUND_CHANNELS
 }
 
+void Sound::loop() {
+	Audio_Handler();
+}
+
+
 void Sound::mute() {
 	muted = true;
 }
@@ -355,86 +338,87 @@ uint32_t Sound::getPos(int8_t i) {
 #if SOUND_CHANNELS > 0
 
 uint8_t flowdown = 0;
+int dataSize = 2000;
 
 void IRAM_ATTR Audio_Handler() {
 	if (!globalVolume || muted) {
 		return;
 	}
-	int8_t output = 0;
-	for (uint8_t i = 0; i < SOUND_CHANNELS; i++) {
-		if (channels[i].use) {
-			switch (channels[i].type) {
-			case Sound_Channel_Type::raw:
-				if (efx_only) {
+
+	int8_t data[dataSize] = {0};
+	int counter = 0;
+
+	for (int i = 0; i < dataSize; i++) {
+		if (!globalVolume || muted) {
+			return;
+		}
+
+		int8_t output = 0;
+		for (uint8_t i = 0; i < SOUND_CHANNELS; i++) {
+			if (channels[i].use) {
+				switch (channels[i].type) {
+				case Sound_Channel_Type::raw:
+					if (efx_only) {
+						break;
+					}
+					if (channels[i].index < channels[i].total - 1) {
+						output += (channels[i].buffer[channels[i].index++] - 0x80);
+					} else if (!channels[i].last) {
+						channels[i].index = 0;
+						output += (channels[i].buffer[channels[i].index++] - 0x80);
+					} else if (channels[i].loop) {
+						handlers[i]->rewind();
+					} else {
+						channels[i].use = false;
+					}
+					break;
+				case Sound_Channel_Type::square:
+					if (efx_only && channels[i].loop) {
+						break;
+					}
+					if (channels[i].index++ >= channels[i].total) {
+						channels[i].last = !channels[i].last;
+						channels[i].index = 0;
+					}
+					if (channels[i].last) {
+						output -= channels[i].amplitude;
+					} else {
+						output += channels[i].amplitude;
+					}
 					break;
 				}
-				if (channels[i].index < channels[i].total - 1) {
-					output += (channels[i].buffer[channels[i].index++] - 0x80);
-				} else if (!channels[i].last) {
-					channels[i].index = 0;
-					output += (channels[i].buffer[channels[i].index++] - 0x80);
-				} else if (channels[i].loop) {
-					handlers[i]->rewind();
-				} else {
-					channels[i].use = false;
-				}
-				break;
-			case Sound_Channel_Type::square:
-				if (efx_only && channels[i].loop) {
-					break;
-				}
-				if (channels[i].index++ >= channels[i].total) {
-					channels[i].last = !channels[i].last;
-					channels[i].index = 0;
-				}
-				if (channels[i].last) {
-					output -= channels[i].amplitude;
-				} else {
-					output += channels[i].amplitude;
-				}
-				break;
 			}
 		}
-	}
 
-	if (fx_channel.handler != nullptr) {
-		output += fx_channel.buffer[fx_channel.index];
-		fx_channel.index++;
-		if (fx_channel.index >= fx_channel.size) {
-			fx_channel.index = 0;
+		if (fx_channel.handler != nullptr) {
+			output += fx_channel.buffer[fx_channel.index];
+			fx_channel.index++;
+			if (fx_channel.index >= fx_channel.size) {
+				fx_channel.index = 0;
+			}
 		}
-	}
 
-	if (output) {
-		//offset the signed value to be centered around 512
-		//as the 10-bit DAC output is between 0 and 1024
-		
-		// we need to slowly fade up our zero-level to not have any plop when starting to play sound
-		if (flowdown < 0x7F) {
-			flowdown++;
-		}
-		output += flowdown;
-		if (output < 0) {
-			output = 0;
-		}
-		// dacWrite(26, output);
-		CLEAR_PERI_REG_MASK(SENS_SAR_DAC_CTRL1_REG, SENS_SW_TONE_EN);  //Disable Tone
-		CLEAR_PERI_REG_MASK(SENS_SAR_DAC_CTRL2_REG, SENS_DAC_CW_EN2_M);
-		SET_PERI_REG_BITS(RTC_IO_PAD_DAC2_REG, RTC_IO_PDAC2_DAC, output, RTC_IO_PDAC2_DAC_S);
-		SET_PERI_REG_MASK(RTC_IO_PAD_DAC2_REG, RTC_IO_PDAC2_XPD_DAC | RTC_IO_PDAC2_DAC_XPD_FORCE);
-	} else {
-		// we need to output 0 when not in use to not have weird sound effects with the neoLeds as the interrupt isn't 100% constant there.
-		// however, jumping down from 512 (zero-positin) to 0 would give a plop
-		// so instead we gradually decrease instead
-		// dacWrite(26, flowdown); // zero-position
-		CLEAR_PERI_REG_MASK(SENS_SAR_DAC_CTRL1_REG, SENS_SW_TONE_EN);  //Disable Tone
-		CLEAR_PERI_REG_MASK(SENS_SAR_DAC_CTRL2_REG, SENS_DAC_CW_EN2_M);
-		SET_PERI_REG_BITS(RTC_IO_PAD_DAC2_REG, RTC_IO_PDAC2_DAC, flowdown, RTC_IO_PDAC2_DAC_S);
-		SET_PERI_REG_MASK(RTC_IO_PAD_DAC2_REG, RTC_IO_PDAC2_XPD_DAC | RTC_IO_PDAC2_DAC_XPD_FORCE);
-		if (flowdown > 0) {
-			flowdown--;
-		}
-	}
+		if (output) {
+			if (flowdown < 0x7F) {
+				flowdown++;
+			}
+			output += flowdown;
+			if (output < 0) {
+				output = 0;
+			}
+			data[counter] = output;
+			counter++;
+		} else {
+			data[counter] = (int8_t)flowdown;
+			counter++;
+
+			if (flowdown > 0) {
+				flowdown--;
+			}
+		}		
+	}	
+
+    i2s_write_bytes((i2s_port_t)0, (const char *)data, dataSize, portMAX_DELAY);
 }
 
 void dacConfigure(void) {
@@ -445,11 +429,35 @@ void dacConfigure(void) {
 
 #endif // SOUND_CHANNELS
 
+void I2S_Init() {
+	i2s_config_t i2s_config = {
+		.mode = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_TX | I2S_MODE_DAC_BUILT_IN),
+		.sample_rate = (44100 / 4),
+		.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
+		.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
+		.communication_format = (i2s_comm_format_t)(I2S_COMM_FORMAT_I2S_MSB),
+		.intr_alloc_flags = 0,
+		.dma_buf_count = 16,
+		.dma_buf_len = 60
+	};
+
+	i2s_driver_install((i2s_port_t)0, &i2s_config, 0, NULL);
+	i2s_set_pin((i2s_port_t)0, NULL);
+	i2s_set_dac_mode(I2S_DAC_CHANNEL_BOTH_EN);
+}
+
+void I2S_Write(char* data, int numData) {
+    i2s_write_bytes((i2s_port_t)0, (const char *)data, numData, portMAX_DELAY);
+}
+
+
+
 void Sound::begin() {
 #if SOUND_CHANNELS > 0
-	dacConfigure();
-	tcConfigure(SOUND_FREQ);
-	tcStart();
+	// dacConfigure();
+	I2S_Init();
+	// tcConfigure(SOUND_FREQ);
+	// tcStart();
 #endif
 }
 
