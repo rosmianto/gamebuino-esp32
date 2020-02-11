@@ -1,8 +1,0 @@
-TO DO:
-v Port SDCard
-v Use higher clock frequency (already running at 240MHz)
-* Use DMA for LCD
-v Add keypad
-* Game loader
-v Audio
-* Multiplayer using WiFi or Bluetooth
