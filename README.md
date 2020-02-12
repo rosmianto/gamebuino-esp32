@@ -1,6 +1,6 @@
 # gamebuino-esp32
 
-This is an ESP32 Port for Handheld Game Console Gamebuino META which is originally based on ATSAMD51.
+This is an ESP32 Port for Handheld Game Console Gamebuino META which is originally based on ATSAMD21.
 
 Ported to ESP32 TTGO T4 v1.3 with ILI9341 LCD Display
 
